@@ -1,0 +1,11 @@
+# One-click hosting on Render (games + web proxy).
+# Render > New > Blueprint > pick this repo, or use the Deploy button in README.
+services:
+  - type: web
+    name: sciencetube
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true

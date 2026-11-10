@@ -1,0 +1,10 @@
+# Static hosting for the games. Netlify can't run the WebSocket proxy server,
+# so the proxy section shows as offline here; host server.js on a Node host for it.
+[build]
+  publish = "."
+  command = "echo static site"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"

@@ -1,33 +1,84 @@
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <meta name="keywords" content="front-end web developer, unblocked, games, google sites, unblocked games mom, ublocked, code, coding, programmer, development, javascript, jquery, bootstrap, sass, less, git" />
-    <meta property="og:title" content="Welcome to 3kh0 lite, a lightweight, fast, and clean game site." />
-    <meta property="og:site_name" content="3kh0.github.io" />
-    <meta property="og:description" content="Welcome to 3kh0 lite, a lightweight, fast, and clean game site." />
-    <meta name="description" content="Welcome to 3kh0 lite, a lightweight, fast, and clean game site." />
-    <meta name="author" content="3kh0" />
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>3kh0 lite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ScienceTube</title>
+    <meta name="description" content="ScienceTube: hundreds of browser games hosted right here, plus a private web proxy." />
+    <meta name="theme-color" content="#07060f" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/css/app.css" />
   </head>
-  <body style="background-color: #121212; color: #ffffff; font-family: sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;">
-    <h1 style="font-size: 3em; text-align: center;">
-      3kh0 lite
-    </h1>
-    <span id="subtitle" style="font-size: 1.5em;">...</span>
-    <p style="text-align: center; max-width: 600px; margin: 20px auto;">
-      Welcome to 3kh0 lite, a lightweight, lightning fast, and simple game site.<br />
-      <a href="/projects.html" style="text-decoration: none;"><button style="cursor: pointer; background-color: #22c55e; border: none; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; border-radius: 20px; margin-top: 20px;">Start playing!</button></a><br />
-      <br />
-      <a href="/misc.html" style="text-decoration: none;"><button style="cursor: pointer; background-color: #b625cc; border: none; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; border-radius: 20px; margin-top: 5px;">Tools and settings</button></a>
-    </p>
-    <p style="text-align: center; max-width: 600px; margin: 20px auto;">
-        &copy; 3kh0, 2024. All rights reserved. You are welcome to use and/or duplicate material from the <a href="https://github.com/3kh0/3kh0-lite" style="color: #22c55e;">GitHub repository</a> with proper credit to 3kh0.<br /><br />
-        Contact Echo at <a href="mailto:echo-the-coder@tuta.io" style="color: #22c55e;">echo-the-coder@tuta.io</a>.
-    </p>
+  <body>
+    <canvas id="bg" aria-hidden="true"></canvas>
+    <div class="noise" aria-hidden="true"></div>
+
+    <div class="shell">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+        <div class="brand">
+          <a href="#/home" class="brand-link" aria-label="ScienceTube home">
+            <span class="brand-orb" aria-hidden="true"></span>
+            <span class="brand-name">ScienceTube</span>
+          </a>
+          <button class="icon-btn collapse-btn" id="collapse-btn" title="Collapse sidebar  [" aria-label="Collapse sidebar">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+        </div>
+
+        <button class="search-trigger" id="palette-open" aria-label="Search everything">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+          <span class="label">Search</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+
+        <nav class="nav" id="nav"></nav>
+
+        <div class="sidebar-foot">
+          <div class="mini-stat"><span id="stat-games">0</span><small>games</small></div>
+          <div class="mini-stat"><span id="stat-favs">0</span><small>favorites</small></div>
+          <div class="proxy-dot" id="proxy-dot" title="Proxy status"><i></i><small>proxy</small></div>
+        </div>
+      </aside>
+      <div class="scrim" id="scrim"></div>
+
+      <!-- Main -->
+      <main class="main" id="main">
+        <header class="topbar">
+          <button class="icon-btn menu-btn" id="menu-btn" aria-label="Open menu">
+            <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+          <div class="crumbs" id="crumbs">Home</div>
+          <div class="topbar-actions">
+            <button class="chip" id="random-btn" title="Play a random game  R">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8.5" cy="8.5" r="1.2" /><circle cx="15.5" cy="15.5" r="1.2" /><circle cx="12" cy="12" r="1.2" /></svg>
+              <span>Surprise me</span>
+            </button>
+          </div>
+        </header>
+
+        <div id="view" class="view" tabindex="-1"></div>
+      </main>
+    </div>
+
+    <!-- Command palette -->
+    <div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="Search" hidden>
+      <div class="palette-box">
+        <div class="palette-input">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+          <input id="palette-input" placeholder="Search games, sections, or type a website…" autocomplete="off" spellcheck="false" />
+          <kbd>Esc</kbd>
+        </div>
+        <ul class="palette-list" id="palette-list"></ul>
+        <div class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>1</kbd>–<kbd>9</kbd> jump to section</span></div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
     <script src="/js/main.js"></script>
-    <script src="/js/subtitle.js"></script>
+    <script src="/js/bg.js"></script>
+    <script src="/js/proxy.js"></script>
+    <script src="/js/app.js"></script>
   </body>
 </html>

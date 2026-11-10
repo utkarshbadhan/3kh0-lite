@@ -1,31 +1,60 @@
-# 3kh0 *lite*
+# ScienceTube
 
-![GitHub Repo size](https://img.shields.io/github/repo-size/3kh0/3kh0-lite?style=flat&label=Repo%20size)
-![GitHub Repo stars](https://img.shields.io/github/stars/3kh0/3kh0-lite?style=flat&label=Repo%20stars&color=yellow&link=https%3A%2F%2Fgithub.com%2F3kh0%2F3kh0-lite%2Fstargazers)
-
-Welcome to 3kh0 lite, a lightweight, fast, clean game site.
+A games site with a built-in web proxy. Every game is hosted in this repo (no third-party embeds), and a sidebar ties the sections together.
 
 ## Features
-- Fast
-- Clean
-- Lightweight
-- Obama approves 👍
 
-## Get your copy
+- **Games**: 145 self-hosted games with search, A to Z filter, sorting, favorites, recently played and play counts, all saved in the browser.
+- **Web proxy**: browse any site through this server. Built on [Ultraviolet](https://github.com/titaniumnetwork-dev/Ultraviolet) with a Wisp WebSocket tunnel, so the local network only sees a connection to this site.
+- **Interactive sidebar**: collapsible, mobile drawer, number-key shortcuts, and "coming soon" slots for future sections.
+- **Search everything** with `Ctrl K` or `/`: games, sections, or any web address (opens in the proxy).
+- **Tools**: about:blank launcher, tab disguise (title and icon), panic key.
+- **Settings**: five color themes, animated background toggle, reduce motion, compact sidebar, proxy search engine.
 
-This site is supposed to be simple yet extendable. You can edit this to your heart's content, but I respectfully ask that you credit me somehow.
-1. Fork this repo (give star pls :D)
-2. Edit the files. (mainly the files in the `config` folder)
-3. Optionally, add more games. ([Get some here](https://gitlab.com/3kh0/3kh0-assets))
-4. Host it on your server or any static web host.
-5. Enjoy!
+## Running it
 
-> A known issue is game files; because some games are massive, they will fail on many services. There is no straightforward fix, but you can try to host the files on your server.
-## Configuration
+The proxy needs the Node server. Games alone work on any static host.
 
-All the configuration is done in the `config` folder.
-- `games.json`: It contains the games' names, icons, and link.
+```bash
+npm install
+npm start          # http://localhost:8080  (set PORT to change)
+```
 
-## To-Do
-- Make it easier to add games
-- Make a better README.md
+### Hosting
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/utkarshbadhan/3kh0-lite)
+
+The button uses `render.yaml` and gives you the full site, proxy included, on Render's free plan. `netlify.toml` is there for a games-only static deploy.
+
+| What you want | Where it works |
+| --- | --- |
+| Games and proxy | Any host that runs Node 18+ with WebSockets: Render, Railway, Fly.io, Koyeb, a VPS. Must be served over HTTPS (service workers require it). |
+| Games only | Any static host (Netlify, Cloudflare Pages, Vercel). The proxy page will show that it's offline. |
+
+Note: the repo is about 1.4 GB because of the game files, which is over GitHub Pages' 1 GB limit.
+
+The proxy blocks requests to private and loopback addresses so it can't be used to reach the server's own network.
+
+## Project layout
+
+```
+index.html        app shell (sidebar, views are rendered by js/app.js)
+css/app.css       all styles and themes
+js/app.js         router, sidebar, games, proxy UI, tools, settings, search palette
+js/bg.js          animated canvas background
+js/proxy.js       proxy client (Ultraviolet + bare-mux + Epoxy)
+js/main.js        tab disguise, also loaded by every game page
+uv/uv.config.js   Ultraviolet config
+server.js         static server + Wisp proxy backend
+config/games.json game catalog
+projects/<slug>/  the games
+```
+
+## Adding things
+
+- **A game**: put it in `projects/<slug>/` and add `{ "link", "imgSrc", "title" }` to `config/games.json`.
+- **A section**: add an entry to `SECTIONS` at the top of `js/app.js`, then a matching `VIEWS.<id>` render function. Entries marked `soon: true` show a teaser page until you build them.
+
+## Credits
+
+Based on [3kh0-lite](https://github.com/3kh0/3kh0-lite) by 3kh0. Games belong to their respective creators.

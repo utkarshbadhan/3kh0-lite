@@ -1,11 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="en-US">
   <head>
-    <title>404 Error | 3kh0</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lost in space · ScienceTube</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/css/app.css" />
+    <style>
+      body { display: grid; place-items: center; text-align: center; overflow: hidden; }
+      .lost { position: relative; z-index: 2; padding: 24px; }
+      .lost h1 { font-size: clamp(90px, 20vw, 200px); line-height: 1; margin: 0; font-weight: 900; letter-spacing: -0.06em; }
+      .lost p { color: var(--muted); margin: 8px 0 26px; font-size: 18px; }
+    </style>
   </head>
   <body>
-    <h1>404 Error</h1>
-    <p>Page not found. Whomp whomp :(</p>
-    <a href="/">Go to Homepage</a>
+    <canvas id="bg" aria-hidden="true"></canvas>
+    <div class="lost">
+      <h1 class="grad-text">404</h1>
+      <p>This page drifted off into space.</p>
+      <a class="btn" href="/">Take me home</a>
+    </div>
+    <script src="/js/main.js"></script>
+    <script src="/js/bg.js"></script>
   </body>
 </html>
