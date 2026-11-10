@@ -1,4 +1,4 @@
-// Nebula — single-page app: sidebar, router, games, proxy, tools, settings.
+// ScienceTube — single-page app: sidebar, router, games, proxy, tools, settings.
 (function () {
   "use strict";
 
@@ -359,7 +359,7 @@
     recent = [slug, ...recent.filter((s) => s !== slug)].slice(0, 30);
     plays[slug] = (plays[slug] || 0) + 1;
     store.set("recent", recent); store.set("plays", plays);
-    document.title = localStorage.getItem("title") || `${g.title} · Nebula`;
+    document.title = localStorage.getItem("title") || `${g.title} · ScienceTube`;
 
     view.classList.add("no-pad");
     const on = favs.has(slug);
@@ -403,7 +403,7 @@
       <div class="proxy-home page" id="px-home">
         <span class="status-line" id="px-status"><i></i><span>Checking proxy…</span></span>
         <h1>Browse <span class="grad-text">without limits</span></h1>
-        <p>Type a website or a search. Pages load through this site’s own server, so your network only sees a connection to Nebula.</p>
+        <p>Type a website or a search. Pages load through this site’s own server, so your network only sees a connection to ScienceTube.</p>
         <form class="omni" id="px-form" autocomplete="off">
           ${svg("search")}
           <input class="field" id="px-input" placeholder="Search ${esc(engine)} or type a URL" spellcheck="false">
@@ -534,7 +534,7 @@
         </div>
         <div class="card">
           <h3>${svg("bolt")} Panic key</h3>
-          <p>Press the key anywhere on Nebula to jump instantly to a safe page. Click outside a game first, since games capture the keyboard.</p>
+          <p>Press the key anywhere on ScienceTube to jump instantly to a safe page. Click outside a game first, since games capture the keyboard.</p>
           <div class="row"><input class="field" id="pk-key" maxlength="1" style="max-width:80px;text-align:center" value="${esc(panic.key)}"><input class="field" id="pk-url" value="${esc(panic.url)}"></div>
           <div class="row" style="margin-top:10px"><button class="btn sm" id="pk-save">Save</button><button class="btn sm ghost" id="pk-off">${panic.off ? "Turn on" : "Turn off"}</button></div>
           <div class="note" id="pk-note">${panic.off ? "Panic key is off." : `Panic key is on: press <kbd>${esc(panic.key)}</kbd>.`}</div>
@@ -551,7 +551,7 @@
     const applyCloak = (title, icon) => {
       if (title) localStorage.setItem("title", title); else localStorage.removeItem("title");
       if (icon) localStorage.setItem("icon", icon); else localStorage.removeItem("icon");
-      document.title = title || "Nebula";
+      document.title = title || "ScienceTube";
       let link = $("link[rel~='icon']"); link.href = icon || "/favicon.ico";
     };
     $("#tc-save").onclick = () => {
@@ -591,7 +591,7 @@
   VIEWS.settings = () => {
     const theme = store.get("theme", "nebula");
     view.innerHTML = `<div class="page">
-      <div class="page-head"><h1><span class="grad-text">Settings</span></h1><p>Make Nebula yours. Everything is saved in this browser only.</p></div>
+      <div class="page-head"><h1><span class="grad-text">Settings</span></h1><p>Make ScienceTube yours. Everything is saved in this browser only.</p></div>
       <div class="cards">
         <div class="card"><h3>${svg("sparkle")} Color theme</h3><p>Changes accents, glows and the animated background.</p>
           <div class="swatches" style="margin-bottom:22px">${THEMES.map(([id, n, a, b]) => `<button class="swatch${id === theme ? " active" : ""}" data-t="${id}" style="background:linear-gradient(135deg,${a},${b});color:${a}" aria-label="${n}"><span>${n}</span></button>`).join("")}</div>
@@ -656,7 +656,7 @@
     view.classList.remove("no-pad");
     view.style.display = "";
     if (proxyEl) proxyEl.style.display = "none";
-    if (name !== "play") document.title = localStorage.getItem("title") || "Nebula";
+    if (name !== "play") document.title = localStorage.getItem("title") || "ScienceTube";
 
     const section = NAV.find((s) => s.id === name);
     let meta = {};

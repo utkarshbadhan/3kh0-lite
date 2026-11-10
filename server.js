@@ -1,4 +1,4 @@
-// Nebula Arcade server: serves the static site and powers the web proxy.
+// ScienceTube server: serves the static site and powers the web proxy.
 //
 // The proxy uses Ultraviolet (a service-worker rewriting proxy). The browser
 // rewrites every page it loads and tunnels the traffic to this server over a
@@ -47,5 +47,5 @@ server.on("upgrade", (req, socket, head) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Nebula Arcade running at http://localhost:${PORT}`);
+  console.log(`ScienceTube running at http://localhost:${PORT}`);
 });

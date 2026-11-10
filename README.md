@@ -1,4 +1,4 @@
-# Nebula
+# ScienceTube
 
 A games site with a built-in web proxy. Every game is hosted in this repo (no third-party embeds), and a sidebar ties the sections together.
 
