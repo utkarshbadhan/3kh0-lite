@@ -22,6 +22,10 @@ npm start          # http://localhost:8080  (set PORT to change)
 
 ### Hosting
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/utkarshbadhan/3kh0-lite)
+
+The button uses `render.yaml` and gives you the full site, proxy included, on Render's free plan. `netlify.toml` is there for a games-only static deploy.
+
 | What you want | Where it works |
 | --- | --- |
 | Games and proxy | Any host that runs Node 18+ with WebSockets: Render, Railway, Fly.io, Koyeb, a VPS. Must be served over HTTPS (service workers require it). |
