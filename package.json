@@ -1,0 +1,20 @@
+{
+  "name": "nebula-arcade",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Self-hosted browser games plus a built-in web proxy.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@mercuryworkshop/bare-mux": "^2.1.7",
+    "@mercuryworkshop/epoxy-transport": "^2.1.27",
+    "@mercuryworkshop/wisp-js": "^0.3.3",
+    "@titaniumnetwork-dev/ultraviolet": "^3.2.10",
+    "express": "^4.21.2"
+  }
+}
