@@ -434,8 +434,10 @@
 
   /* ---------- Chat ---------- */
   const NAME_HUES = [265, 330, 190, 150, 45, 15, 220, 100];
-  VIEWS.chat = (arg) => {
+  VIEWS.chat = async (arg) => {
     const C = window.NebulaChat;
+    await C.ready;
+    if (!/^#\/chat/.test(location.hash)) return;
     const rooms = C.rooms;
     const room = rooms.find((r) => r.id === arg) || rooms[0];
     let me = store.get("chatName", "");
@@ -482,8 +484,8 @@
       lastAuthor = m.n; last = m.ts;
       if (stick || m.n === me) log.scrollTop = log.scrollHeight;
     };
-    const leave = C.join(room.id, onMessage, setStatus);
-    cleanup.push(leave);
+    const conn = C.join(room.id, onMessage, setStatus);
+    cleanup.push(() => conn.leave());
     nameIn.onchange = () => { me = nameIn.value.trim().slice(0, 24); store.set("chatName", me); };
     let lastSend = 0;
     $("#c-form").onsubmit = async (e) => {
@@ -496,7 +498,7 @@
       if (Date.now() - lastSend < 1500) { toast("Slow down a little."); return; }
       lastSend = Date.now();
       input.value = "";
-      try { await C.send(room.id, { n: me, t: t.slice(0, 500), c: hue }); }
+      try { await C.send(room.id, { n: me, t: t.slice(0, 500), c: hue }); conn.poke(); }
       catch (err) { input.value = t; toast(err.message || "Message failed to send."); }
       input.focus();
     };

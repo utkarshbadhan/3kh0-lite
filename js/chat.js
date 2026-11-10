@@ -1,12 +1,14 @@
-// ScienceTube chat transport. Two backends with the same shape:
-//   firebase: Firebase Realtime Database over REST + Server-Sent Events
-//   local:    BroadcastChannel demo that only reaches tabs in this browser
+// ScienceTube chat transport. Three backends with the same shape:
+//   netlify:  the site's own Netlify function (/api/chat) with polling (default)
+//   firebase: Firebase Realtime Database over REST + Server-Sent Events,
+//             used instead when databaseURL is set in chat-config.js
+//   local:    BroadcastChannel demo, used when neither is reachable
+//             (for example when the site is opened from a plain static server)
 // join(room, onMessage, onStatus) returns a function that leaves the room.
 window.NebulaChat = (function () {
   "use strict";
   const cfg = window.SCIENCETUBE_CHAT || { databaseURL: "", rooms: [], history: 60 };
   const db = (cfg.databaseURL || "").replace(/\/+$/, "");
-  const mode = db ? "firebase" : "local";
 
   function joinFirebase(room, onMessage, onStatus) {
     const seen = new Set();
@@ -64,10 +66,56 @@ window.NebulaChat = (function () {
     if (chan) chan.postMessage({ room, msg: m });
   }
 
-  return {
-    mode,
+  // Netlify backend: poll the site's own function. Polls every 3 s while the
+  // tab is visible and every 15 s while it's in the background.
+  const API = "/api/chat";
+  function joinNetlify(room, onMessage, onStatus) {
+    let cursor = "", stopped = false, timer = 0, fails = 0, busy = false, again = false;
+    async function poll() {
+      if (stopped) return;
+      if (busy) { again = true; return; }
+      busy = true; clearTimeout(timer);
+      try {
+        const r = await fetch(`${API}?room=${encodeURIComponent(room)}${cursor ? "&since=" + encodeURIComponent(cursor) : ""}`, { cache: "no-store" });
+        if (!r.ok) throw new Error(r.status);
+        const { messages } = await r.json();
+        if (stopped) return;
+        messages.forEach((m) => { if (m.id > cursor) { cursor = m.id; onMessage(m); } });
+        fails = 0; onStatus("live");
+      } catch (e) { fails++; onStatus(fails > 2 ? "error" : "connecting"); }
+      busy = false;
+      if (stopped) return;
+      if (again) { again = false; return poll(); }
+      timer = setTimeout(poll, document.hidden ? 15000 : 3000);
+    }
+    const wake = () => { if (!document.hidden && !stopped) poll(); };
+    document.addEventListener("visibilitychange", wake);
+    onStatus("connecting"); poll();
+    return { leave() { stopped = true; clearTimeout(timer); document.removeEventListener("visibilitychange", wake); }, poke: wake };
+  }
+  async function sendNetlify(room, msg) {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ room, n: msg.n, t: msg.t, c: msg.c }) });
+    let d = {}; try { d = await r.json(); } catch (e) {}
+    if (!r.ok) throw new Error(d.error || "Message failed to send (" + r.status + ")");
+  }
+
+  // Pick a backend once: Firebase if configured, else the Netlify function if
+  // it answers, else the local demo.
+  const ready = db ? Promise.resolve("firebase")
+    : fetch(API + "?room=" + encodeURIComponent((cfg.rooms && cfg.rooms[0] && cfg.rooms[0].id) || "general"), { cache: "no-store" })
+        .then((r) => (r.ok && /json/.test(r.headers.get("content-type") || "") ? "netlify" : "local"))
+        .catch(() => "local");
+  const api = { mode: db ? "firebase" : "pending" };
+  ready.then((m) => (api.mode = m));
+
+  // Every join returns { leave(), poke() }; poke() asks for new messages now.
+  const wrap = (fn) => (...a) => { const r = fn(...a); return typeof r === "function" ? { leave: r, poke() {} } : r; };
+  const B = { firebase: [wrap(joinFirebase), sendFirebase], netlify: [joinNetlify, sendNetlify], local: [wrap(joinLocal), sendLocal] };
+
+  return Object.assign(api, {
+    ready,
     rooms: cfg.rooms && cfg.rooms.length ? cfg.rooms : [{ id: "general", name: "General", emoji: "💬" }],
-    join: mode === "firebase" ? joinFirebase : joinLocal,
-    send: mode === "firebase" ? sendFirebase : sendLocal,
-  };
+    join: (room, onMessage, onStatus) => B[api.mode][0](room, onMessage, onStatus),
+    send: (room, msg) => B[api.mode][1](room, msg),
+  });
 })();
