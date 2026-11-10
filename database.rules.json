@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "rooms": {
+      "$room": {
+        ".read": "$room.matches(/^(general|games|help|random)$/)",
+        "$msg": {
+          ".write": "!data.exists() && newData.exists() && $room.matches(/^(general|games|help|random)$/)",
+          ".validate": "newData.hasChildren(['n', 't', 'ts']) && newData.child('ts').val() == now",
+          "n": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 24" },
+          "t": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 500" },
+          "c": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 360" },
+          "ts": { ".validate": true },
+          "$other": { ".validate": false }
+        }
+      }
+    }
+  }
+}

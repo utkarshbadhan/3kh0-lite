@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>To-do list</title>
+<link rel="stylesheet" href="/apps/app.css"><script src="/apps/app.js"></script>
+<style>
+  .box { width: min(620px, 100%); margin: 0 auto; display: grid; gap: 14px; }
+  .filters { display: flex; gap: 6px; }
+  .filters button { padding: 6px 12px; border-radius: 10px; border: 1px solid var(--line); background: none; cursor: pointer; color: var(--muted); }
+  .filters button.on { color: var(--text); border-color: var(--a1); }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid var(--line); }
+  li input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--a1); flex: none; }
+  li span { flex: 1; word-break: break-word; }
+  li.done span { text-decoration: line-through; color: var(--muted); }
+  li button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 18px; }
+  li button:hover { color: #fb7185; }
+  .bar { height: 8px; border-radius: 9px; background: rgba(255,255,255,.08); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--grad); transition: width .3s; }
+</style>
+</head>
+<body>
+<div class="wrap" style="overflow-y:auto">
+  <div class="box">
+    <h1>To-do <span class="grad-text">list</span></h1>
+    <form class="row" id="f"><input class="field" id="in" placeholder="What needs doing?" maxlength="200" style="flex:1"><button class="btn">Add</button></form>
+    <div class="bar"><i id="prog" style="width:0"></i></div>
+    <div class="row"><span class="muted" id="count"></span><span style="flex:1"></span>
+      <div class="filters" id="filters"><button data-f="all" class="on">All</button><button data-f="open">Open</button><button data-f="done">Done</button></div></div>
+    <ul id="list"></ul>
+    <button class="btn sm ghost" id="clear" style="justify-self:start">Clear completed</button>
+  </div>
+</div>
+<script>
+(function () {
+  const store = AppStore("todo");
+  let items = store.get("items", []), filter = "all";
+  const $ = (id) => document.getElementById(id);
+  const save = () => store.set("items", items);
+  function render() {
+    const shown = items.filter((t) => filter === "all" || (filter === "done") === t.done);
+    $("list").innerHTML = shown.map((t) => `<li class="${t.done ? "done" : ""}" data-id="${t.id}"><input type="checkbox" ${t.done ? "checked" : ""} aria-label="Done"><span>${escapeHTML(t.text)}</span><button title="Delete" aria-label="Delete">×</button></li>`).join("") || '<li class="muted" style="justify-content:center">Nothing here.</li>';
+    const done = items.filter((t) => t.done).length;
+    $("count").textContent = `${items.length - done} open · ${done} done`;
+    $("prog").style.width = items.length ? (done / items.length) * 100 + "%" : "0";
+  }
+  $("f").onsubmit = (e) => { e.preventDefault(); const v = $("in").value.trim(); if (!v) return; items.unshift({ id: Date.now(), text: v, done: false }); $("in").value = ""; save(); render(); };
+  $("list").onclick = (e) => {
+    const li = e.target.closest("[data-id]"); if (!li) return; const t = items.find((x) => x.id === +li.dataset.id);
+    if (e.target.tagName === "BUTTON") items = items.filter((x) => x !== t);
+    else if (e.target.type === "checkbox") t.done = e.target.checked;
+    save(); render();
+  };
+  $("filters").onclick = (e) => { const b = e.target.closest("[data-f]"); if (!b) return; filter = b.dataset.f; document.querySelectorAll("[data-f]").forEach((x) => x.classList.toggle("on", x === b)); render(); };
+  $("clear").onclick = () => { items = items.filter((t) => !t.done); save(); render(); };
+  render(); $("in").focus();
+})();
+</script>
+</body>
+</html>
