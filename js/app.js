@@ -37,6 +37,10 @@
      Sections — add a new sidebar entry here and give it a render
      function in VIEWS below. Entries marked `soon` show a teaser page.
   ------------------------------------------------------------------ */
+  // The web proxy needs the Node server (server.js). Set this to true once the
+  // site is hosted somewhere that runs it; until then it shows as "Coming soon".
+  const PROXY_ENABLED = false;
+
   const SECTIONS = [
     { group: "Play" },
     { id: "home", label: "Home", icon: "home", blurb: "Your dashboard" },
@@ -44,7 +48,7 @@
     { id: "favorites", label: "Favorites", icon: "heart", blurb: "Games you've hearted", glow: "var(--a2)" },
     { id: "recent", label: "Recently played", icon: "clock", blurb: "Jump back in", glow: "var(--a3)" },
     { group: "Explore" },
-    { id: "proxy", label: "Web proxy", icon: "globe", badge: "NEW", live: true, blurb: "Browse any site privately", glow: "#22c55e" },
+    { id: "proxy", label: "Web proxy", icon: "globe", soon: !PROXY_ENABLED, badge: "NEW", live: true, blurb: "Browse any site privately", glow: "#22c55e" },
     { id: "tools", label: "Tools", icon: "tools", blurb: "Tab disguise, about:blank, panic key", glow: "#f59e0b" },
     { id: "settings", label: "Settings", icon: "gear", blurb: "Themes and effects", glow: "#94a3b8" },
     { group: "Coming soon" },
@@ -223,10 +227,10 @@
         <div>
           <span class="hero-kicker"><i></i> ${games.length} games hosted right here · no installs</span>
           <h1>Play <span class="swap" id="swap"><span>${words[0]}</span></span><br>Browse freely.</h1>
-          <p>A whole arcade that loads instantly in your browser, plus a built-in web proxy to reach the rest of the internet privately.</p>
+          <p>A whole arcade that loads instantly in your browser, ${PROXY_ENABLED ? "plus a built-in web proxy to reach the rest of the internet privately." : "with no installs, no downloads and no waiting."}</p>
           <div class="hero-actions">
             <a class="btn" href="#/games">${svg("games")} Start playing</a>
-            <a class="btn ghost" href="#/proxy">${svg("globe")} Open the proxy</a>
+            ${PROXY_ENABLED ? `<a class="btn ghost" href="#/proxy">${svg("globe")} Open the proxy</a>` : `<button class="btn ghost" onclick="document.getElementById('random-btn').click()">${svg("dice")} Surprise me</button>`}
           </div>
           <div class="hero-stats">
             <div><b data-count="${games.length}">0</b><small>games</small></div>
@@ -321,7 +325,7 @@
         if (s === "shuffle") { shuffled = shuffled || shuffle(source()); const order = new Map(shuffled.map((g, i) => [g.slug, i])); out.sort((a, b) => order.get(a.slug) - order.get(b.slug)); }
         $("#count").textContent = `${out.length} ${out.length === 1 ? "game" : "games"}`;
         grid.innerHTML = out.length ? out.map(card).join("") :
-          `<div class="empty" style="grid-column:1/-1"><div class="big">${emptyIcon}</div>${term ? `Nothing matches “${esc(term)}”. Try the proxy to search the web.` : emptyMsg}</div>`;
+          `<div class="empty" style="grid-column:1/-1"><div class="big">${emptyIcon}</div>${term ? `Nothing matches “${esc(term)}”.${PROXY_ENABLED ? " Try the proxy to search the web." : ""}` : emptyMsg}</div>`;
       };
       let deb;
       q.addEventListener("input", () => { clearTimeout(deb); deb = setTimeout(render, 80); });
@@ -601,9 +605,9 @@
           <label class="toggle"><span>Reduce motion</span><span class="switch"><input type="checkbox" id="s-calm" ${store.get("calm", false) ? "checked" : ""}><span></span></span></label>
           <label class="toggle"><span>Compact sidebar</span><span class="switch"><input type="checkbox" id="s-col" ${document.body.classList.contains("collapsed") ? "checked" : ""}><span></span></span></label>
         </div>
-        <div class="card"><h3>${svg("globe")} Proxy search engine</h3><p>Used when you type words instead of a URL in the proxy.</p>
+        ${PROXY_ENABLED ? "" : "<!--"}<div class="card"><h3>${svg("globe")} Proxy search engine</h3><p>Used when you type words instead of a URL in the proxy.</p>
           <select class="field" id="s-engine">${Object.entries({ duckduckgo: "DuckDuckGo", brave: "Brave Search", google: "Google", bing: "Bing" }).map(([k, n]) => `<option value="${k}">${n}</option>`).join("")}</select>
-        </div>
+        </div>${PROXY_ENABLED ? "" : "-->"}
         <div class="card"><h3>${svg("shield")} Your data</h3><p>Favorites, history and settings live in this browser only. Nothing is sent anywhere.</p>
           <button class="btn sm ghost" id="s-clear">Clear favorites and history</button>
         </div>
@@ -619,8 +623,8 @@
     $("#s-bg").onchange = (e) => { store.set("bg", e.target.checked); NebulaBG.setEnabled(e.target.checked); };
     $("#s-calm").onchange = (e) => { store.set("calm", e.target.checked); document.body.classList.toggle("calm", e.target.checked); };
     $("#s-col").onchange = (e) => setCollapsed(e.target.checked);
-    $("#s-engine").value = store.get("engine", "duckduckgo");
-    $("#s-engine").onchange = (e) => { store.set("engine", e.target.value); const i = proxyEl && $("#px-input", proxyEl); if (i) i.placeholder = `Search ${e.target.value} or type a URL`; };
+    if ($("#s-engine")) $("#s-engine").value = store.get("engine", "duckduckgo");
+    if ($("#s-engine")) $("#s-engine").onchange = (e) => { store.set("engine", e.target.value); const i = proxyEl && $("#px-input", proxyEl); if (i) i.placeholder = `Search ${e.target.value} or type a URL`; };
     $("#s-clear").onclick = () => {
       if (!confirm("Clear favorites, recently played and play counts?")) return;
       favs = new Set(); recent = []; plays = {};
@@ -660,8 +664,8 @@
 
     const section = NAV.find((s) => s.id === name);
     let meta = {};
-    if (VIEWS[name]) meta = (await VIEWS[name](arg, params)) || {};
-    else if (section && section.soon) soonView(section);
+    if (section && section.soon) soonView(section);
+    else if (VIEWS[name]) meta = (await VIEWS[name](arg, params)) || {};
     else { location.replace("#/home"); return; }
     if (token !== routing) return;
 
@@ -669,7 +673,7 @@
     setActiveNav(navId);
     const sec = NAV.find((s) => s.id === navId);
     $("#crumbs").innerHTML = meta.crumb ? `${esc(sec.label)} / <b>${esc(meta.crumb)}</b>` : `<b>${esc(sec ? sec.label : "Home")}</b>`;
-    NebulaBG.setPaused(!!meta.immersive || name === "proxy");
+    NebulaBG.setPaused(!!meta.immersive || (PROXY_ENABLED && name === "proxy"));
     if (name !== "proxy") view.scrollTop = 0;
   }
 
@@ -694,7 +698,7 @@
     const secs = NAV.filter((s) => s.label.toLowerCase().includes(q)).map((s) => ({ kind: "section", s }));
     const gm = (q ? games.filter((g) => g.title.toLowerCase().includes(q)) : recent.map((s) => bySlug.get(s)).filter(Boolean)).slice(0, 8).map((g) => ({ kind: "game", g }));
     palItems = [...(q ? gm : []), ...secs.slice(0, q ? 4 : 20), ...(q ? [] : gm)];
-    if (q) palItems.push({ kind: "web", q: palIn.value.trim() });
+    if (q && PROXY_ENABLED) palItems.push({ kind: "web", q: palIn.value.trim() });
     palSel = 0;
     palList.innerHTML = palItems.map((it, i) => {
       if (it.kind === "game") return `<li data-i="${i}"><img src="${esc(it.g.imgSrc)}" alt=""><span>${esc(it.g.title)}</span><small>Game</small></li>`;
@@ -758,6 +762,7 @@
   NebulaBG.setEnabled(store.get("bg", true));
   buildNav();
   updateStats();
-  NebulaProxy.check().then(setProxyDot);
+  if (PROXY_ENABLED) NebulaProxy.check().then(setProxyDot);
+  else $("#proxy-dot").hidden = true;
   route();
 })();
