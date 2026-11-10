@@ -1,8 +1,12 @@
-# Static hosting for the games. Netlify can't run the WebSocket proxy server,
-# so the proxy section shows as offline here; host server.js on a Node host for it.
+# Static hosting for the games and apps, plus the chat function in
+# netlify/functions/. Netlify can't run the WebSocket proxy server.
 [build]
   publish = "."
   command = "echo static site"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
 
 [[headers]]
   for = "/*"

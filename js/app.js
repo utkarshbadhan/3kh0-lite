@@ -49,13 +49,13 @@
     { id: "recent", label: "Recently played", icon: "clock", blurb: "Jump back in", glow: "var(--a3)" },
     { group: "Explore" },
     { id: "proxy", label: "Web proxy", icon: "globe", soon: !PROXY_ENABLED, badge: "NEW", live: true, blurb: "Browse any site privately", glow: "#22c55e" },
+    { id: "apps", label: "Apps", icon: "apps", badge: "NEW", blurb: "Calculator, notes, paint and more", glow: "#38bdf8" },
+    { id: "chat", label: "Chat", icon: "chat", badge: "NEW", blurb: "Talk with friends", glow: "#f472b6" },
     { id: "tools", label: "Tools", icon: "tools", blurb: "Tab disguise, about:blank, panic key", glow: "#f59e0b" },
     { id: "settings", label: "Settings", icon: "gear", blurb: "Themes and effects", glow: "#94a3b8" },
     { group: "Coming soon" },
     { id: "movies", label: "Movies & TV", icon: "film", soon: true, blurb: "Watch together, ad-free" },
     { id: "music", label: "Music", icon: "music", soon: true, blurb: "Stream while you play" },
-    { id: "chat", label: "Chat", icon: "chat", soon: true, blurb: "Talk with friends" },
-    { id: "apps", label: "Apps", icon: "apps", soon: true, blurb: "Handy web apps" },
   ];
   const NAV = SECTIONS.filter((s) => s.id);
   const JUMP = NAV.filter((s) => !s.soon); // number keys 1..9
@@ -390,6 +390,122 @@
     return { crumb: g.title, nav: "games", immersive: true };
   };
 
+  /* ---------- Apps (each one is a self-contained page under /apps/) ---------- */
+  const APPS = [
+    { slug: "calculator", name: "Calculator", emoji: "🧮", blurb: "Scientific-ish calculator with history", hue: 265 },
+    { slug: "notes", name: "Notes", emoji: "📝", blurb: "Quick notes that save as you type", hue: 45 },
+    { slug: "paint", name: "Paint", emoji: "🎨", blurb: "Brush, shapes, fill and PNG export", hue: 330 },
+    { slug: "clock", name: "Timer & Stopwatch", emoji: "⏱️", blurb: "Countdowns, laps and alarms", hue: 190 },
+    { slug: "converter", name: "Unit converter", emoji: "📐", blurb: "Length, mass, temperature and more", hue: 150 },
+    { slug: "todo", name: "To-do list", emoji: "✅", blurb: "Track what needs doing", hue: 100 },
+    { slug: "code", name: "Code playground", emoji: "💻", blurb: "HTML, CSS and JS with live preview", hue: 220 },
+  ];
+  const appBySlug = new Map(APPS.map((a) => [a.slug, a]));
+
+  VIEWS.apps = () => {
+    view.innerHTML = `<div class="page">
+      <div class="page-head"><h1><span class="grad-text">Apps</span></h1><p>Handy tools that run right here on ScienceTube. They open inside the site and save to this browser.</p></div>
+      <div class="app-grid">${APPS.map((a, i) => `<a class="app-tile" href="#/app/${a.slug}" style="--h:${a.hue};--i:${i}">
+          <span class="app-ico">${a.emoji}</span><b>${esc(a.name)}</b><small>${esc(a.blurb)}</small></a>`).join("")}
+      </div>
+    </div>`;
+  };
+
+  VIEWS.app = (slug) => {
+    const a = appBySlug.get(slug);
+    if (!a) { location.hash = "#/apps"; return; }
+    view.classList.add("no-pad");
+    view.innerHTML = `<div class="player-bar page">
+        <a class="icon-btn" href="#/apps" title="Back to apps">${svg("back")}</a>
+        <span class="app-ico sm" style="--h:${a.hue}">${a.emoji}</span>
+        <div class="title">${esc(a.name)}</div>
+        <button class="icon-btn" id="a-reload" title="Reload">${svg("reload")}</button>
+        <button class="btn sm" id="a-full">${svg("full")} Fullscreen</button>
+      </div>
+      <div class="stage app-stage" id="stage">
+        <iframe id="frame" src="/apps/${a.slug}/" allow="fullscreen; clipboard-write" allowfullscreen title="${esc(a.name)}"></iframe>
+      </div>`;
+    const frame = $("#frame");
+    frame.addEventListener("load", () => { try { frame.contentWindow.focus(); } catch {} });
+    $("#a-reload").onclick = () => { frame.src = "/apps/" + a.slug + "/"; };
+    $("#a-full").onclick = () => $("#stage").requestFullscreen && $("#stage").requestFullscreen();
+    return { crumb: a.name, nav: "apps", immersive: true };
+  };
+
+  /* ---------- Chat ---------- */
+  const NAME_HUES = [265, 330, 190, 150, 45, 15, 220, 100];
+  VIEWS.chat = async (arg) => {
+    const C = window.NebulaChat;
+    await C.ready;
+    if (!/^#\/chat/.test(location.hash)) return;
+    const rooms = C.rooms;
+    const room = rooms.find((r) => r.id === arg) || rooms[0];
+    let me = store.get("chatName", "");
+    const hue = store.get("chatHue", NAME_HUES[(Math.random() * NAME_HUES.length) | 0]);
+    store.set("chatHue", hue);
+    view.classList.add("no-pad");
+    view.innerHTML = `<div class="chat page">
+      <aside class="chat-rooms">
+        <div class="chat-rooms-head">Rooms</div>
+        ${rooms.map((r) => `<a href="#/chat/${esc(r.id)}" class="${r.id === room.id ? "on" : ""}"><span>${r.emoji || "#"}</span>${esc(r.name)}</a>`).join("")}
+        <div class="chat-me">
+          <label class="muted" for="c-name">Your name</label>
+          <input class="field" id="c-name" maxlength="24" placeholder="Pick a nickname" value="${esc(me)}">
+        </div>
+      </aside>
+      <section class="chat-main">
+        <header class="chat-head"><b>${room.emoji || "#"} ${esc(room.name)}</b><span class="status-line" id="c-status"><i></i><span>Connecting…</span></span></header>
+        ${C.mode === "local" ? `<div class="chat-banner">${svg("sparkle")}<span><b>Demo mode.</b> Messages only reach other tabs in this browser until the site owner connects a chat database.</span></div>` : ""}
+        <div class="chat-log" id="c-log"><div class="chat-empty muted">No messages yet. Say hi!</div></div>
+        <form class="chat-form" id="c-form">
+          <input class="field" id="c-text" maxlength="500" placeholder="Message ${esc(room.name)}" autocomplete="off">
+          <button class="btn" id="c-send">Send</button>
+        </form>
+        <small class="chat-foot muted">Be kind. Don't share passwords, your address or other personal info.</small>
+      </section>
+    </div>`;
+    const log = $("#c-log"), status = $("#c-status"), input = $("#c-text"), nameIn = $("#c-name");
+    let last = 0, lastAuthor = null;
+    const setStatus = (s) => {
+      const txt = { live: "Live", connecting: "Connecting…", error: "Offline", demo: "Demo" }[s] || s;
+      status.className = "status-line " + (s === "live" || s === "demo" ? "on" : s === "error" ? "off" : "");
+      status.lastElementChild.textContent = txt;
+    };
+    const time = (ts) => new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    const onMessage = (m) => {
+      const empty = $(".chat-empty", log); if (empty) empty.remove();
+      const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+      const el = document.createElement("div");
+      const cont = lastAuthor === m.n && m.ts - last < 120000;
+      el.className = "msg" + (cont ? " cont" : "") + (m.n === me ? " mine" : "");
+      el.style.setProperty("--h", m.c || 0);
+      el.innerHTML = (cont ? "" : `<div class="msg-head"><b>${esc(m.n)}</b><small>${time(m.ts)}</small></div>`) + `<div class="msg-body">${esc(m.t)}</div>`;
+      log.appendChild(el);
+      lastAuthor = m.n; last = m.ts;
+      if (stick || m.n === me) log.scrollTop = log.scrollHeight;
+    };
+    const conn = C.join(room.id, onMessage, setStatus);
+    cleanup.push(() => conn.leave());
+    nameIn.onchange = () => { me = nameIn.value.trim().slice(0, 24); store.set("chatName", me); };
+    let lastSend = 0;
+    $("#c-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const t = input.value.trim();
+      me = nameIn.value.trim().slice(0, 24);
+      if (!me) { nameIn.focus(); toast("Pick a nickname first."); return; }
+      store.set("chatName", me);
+      if (!t) return;
+      if (Date.now() - lastSend < 1500) { toast("Slow down a little."); return; }
+      lastSend = Date.now();
+      input.value = "";
+      try { await C.send(room.id, { n: me, t: t.slice(0, 500), c: hue }); conn.poke(); }
+      catch (err) { input.value = t; toast(err.message || "Message failed to send."); }
+      input.focus();
+    };
+    (me ? input : nameIn).focus();
+    return { crumb: room.name, nav: "chat" };
+  };
+
   /* ---------- Proxy (kept alive between visits so pages don't reload) ---------- */
   let proxyEl = null;
   function buildProxy() {
@@ -697,11 +813,13 @@
     const q = palIn.value.trim().toLowerCase();
     const secs = NAV.filter((s) => s.label.toLowerCase().includes(q)).map((s) => ({ kind: "section", s }));
     const gm = (q ? games.filter((g) => g.title.toLowerCase().includes(q)) : recent.map((s) => bySlug.get(s)).filter(Boolean)).slice(0, 8).map((g) => ({ kind: "game", g }));
-    palItems = [...(q ? gm : []), ...secs.slice(0, q ? 4 : 20), ...(q ? [] : gm)];
+    const ap = q ? APPS.filter((a) => a.name.toLowerCase().includes(q)).slice(0, 4).map((a) => ({ kind: "app", a })) : [];
+    palItems = [...(q ? gm : []), ...ap, ...secs.slice(0, q ? 4 : 20), ...(q ? [] : gm)];
     if (q && PROXY_ENABLED) palItems.push({ kind: "web", q: palIn.value.trim() });
     palSel = 0;
     palList.innerHTML = palItems.map((it, i) => {
       if (it.kind === "game") return `<li data-i="${i}"><img src="${esc(it.g.imgSrc)}" alt=""><span>${esc(it.g.title)}</span><small>Game</small></li>`;
+      if (it.kind === "app") return `<li data-i="${i}"><span class="ico">${it.a.emoji}</span><span>${esc(it.a.name)}</span><small>App</small></li>`;
       if (it.kind === "section") return `<li data-i="${i}"><span class="ico">${svg(it.s.icon)}</span><span>${esc(it.s.label)}</span><small>${it.s.soon ? "Soon" : "Section"}</small></li>`;
       return `<li data-i="${i}"><span class="ico">${svg("globe")}</span><span>Browse “${esc(it.q)}” in the proxy</span><small>Web</small></li>`;
     }).join("") || `<li class="muted">No results</li>`;
@@ -715,6 +833,7 @@
     const it = palItems[i]; if (!it) return;
     closePalette();
     if (it.kind === "game") location.hash = "#/play/" + encodeURIComponent(it.g.slug);
+    else if (it.kind === "app") location.hash = "#/app/" + it.a.slug;
     else if (it.kind === "section") location.hash = "#/" + it.s.id;
     else location.hash = "#/proxy?q=" + encodeURIComponent(it.q);
   }

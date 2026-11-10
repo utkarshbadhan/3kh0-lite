@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculator</title>
+<link rel="stylesheet" href="/apps/app.css"><script src="/apps/app.js"></script>
+<style>
+  .calc { width: min(420px, 100%); display: grid; gap: 14px; }
+  .screen { padding: 18px 20px; text-align: right; min-height: 120px; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
+  .expr { color: var(--muted); font-size: 18px; min-height: 27px; word-break: break-all; }
+  .out { font-size: 46px; font-weight: 800; letter-spacing: -.03em; word-break: break-all; line-height: 1.1; }
+  .out.err { color: #fb7185; font-size: 28px; }
+  .keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .keys button { height: 58px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel2); font-size: 20px; font-weight: 600; cursor: pointer; transition: .12s; }
+  .keys button:hover { background: color-mix(in srgb, var(--panel2) 70%, #fff 8%); }
+  .keys button:active { transform: scale(.95); }
+  .keys .op { color: var(--a3); }
+  .keys .fn { color: var(--muted); font-size: 16px; }
+  .keys .eq { background: var(--grad); color: #fff; border: 0; grid-row: span 2; height: auto; }
+  .hist { max-height: 140px; overflow-y: auto; font-size: 14px; }
+  .hist div { display: flex; justify-content: space-between; gap: 10px; padding: 4px 2px; cursor: pointer; border-radius: 8px; }
+  .hist div:hover { background: rgba(255,255,255,.05); }
+</style>
+</head>
+<body>
+<div class="wrap center">
+  <div class="calc">
+    <div class="panel screen"><div class="expr" id="expr"></div><div class="out" id="out">0</div></div>
+    <div class="keys" id="keys">
+      <button class="fn" data-k="C">AC</button><button class="fn" data-k="(">(</button><button class="fn" data-k=")">)</button><button class="fn" data-k="%">%</button><button class="op" data-k="/">÷</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button class="fn" data-k="sqrt(">√</button><button class="op" data-k="*">×</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button class="fn" data-k="^">xʸ</button><button class="op" data-k="-">−</button>
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button class="fn" data-k="B">⌫</button><button class="op" data-k="+">+</button>
+      <button data-k="0">0</button><button data-k=".">.</button><button class="fn" data-k="pi">π</button><button class="fn" data-k="ans">ans</button><button class="eq" data-k="=" style="grid-row:auto">=</button>
+    </div>
+    <div class="panel hist" id="hist"><span class="muted">History shows up here. Click a line to reuse it.</span></div>
+  </div>
+</div>
+<script>
+(function () {
+  const store = AppStore("calc");
+  let expr = "", ans = store.get("ans", 0), hist = store.get("hist", []), justDone = false;
+  const $expr = document.getElementById("expr"), $out = document.getElementById("out"), $hist = document.getElementById("hist");
+  const pretty = (s) => s.replace(/\*/g, "×").replace(/\//g, "÷").replace(/-/g, "−").replace(/sqrt\(/g, "√(").replace(/pi/g, "π");
+  const fmt = (n) => { if (!isFinite(n)) throw new Error("Can't divide by zero"); const r = +n.toPrecision(12); return Math.abs(r) >= 1e15 || (r !== 0 && Math.abs(r) < 1e-9) ? r.toExponential(6) : String(r); };
+
+  // Small safe parser (no eval): numbers, + - * / % ^, parentheses, sqrt, pi, ans.
+  function evaluate(src) {
+    const toks = src.match(/\d*\.?\d+(?:e[+-]?\d+)?|sqrt|pi|ans|[-+*/%^()]/g) || [];
+    if (toks.join("") !== src.replace(/\s+/g, "")) throw new Error("Invalid input");
+    let i = 0;
+    const peek = () => toks[i], next = () => toks[i++];
+    function primary() {
+      const t = next();
+      if (t === undefined) throw new Error("Incomplete");
+      if (t === "(") { const v = add(); if (next() !== ")") throw new Error("Missing )"); return v; }
+      if (t === "sqrt") { if (next() !== "(") throw new Error("Use √(…)"); const v = add(); if (next() !== ")") throw new Error("Missing )"); if (v < 0) throw new Error("No √ of negatives"); return Math.sqrt(v); }
+      if (t === "pi") return Math.PI;
+      if (t === "ans") return ans;
+      if (t === "-") return -power();
+      if (t === "+") return power();
+      const n = parseFloat(t); if (isNaN(n)) throw new Error("Invalid input"); return n;
+    }
+    function postfix() { let v = primary(); while (peek() === "%") { next(); v = v / 100; } return v; }
+    function power() { const b = postfix(); if (peek() === "^") { next(); return Math.pow(b, power()); } return b; }
+    function mul() {
+      let v = power();
+      for (;;) {
+        const t = peek();
+        if (t === "*") { next(); v *= power(); }
+        else if (t === "/") { next(); const d = power(); if (d === 0) throw new Error("Can't divide by zero"); v /= d; }
+        else if (t === "(" || t === "sqrt" || t === "pi" || t === "ans" || (t && /\d/.test(t))) v *= power(); // implicit ×
+        else return v;
+      }
+    }
+    function add() { let v = mul(); for (;;) { const t = peek(); if (t === "+") { next(); v += mul(); } else if (t === "-") { next(); v -= mul(); } else return v; } }
+    const v = add();
+    if (i < toks.length) throw new Error("Unexpected " + toks[i]);
+    return v;
+  }
+
+  function render(live) {
+    $expr.textContent = pretty(expr);
+    $out.classList.remove("err");
+    if (live !== undefined) { $out.textContent = live; return; }
+    if (!expr) { $out.textContent = "0"; return; }
+    try { $out.textContent = fmt(evaluate(expr)); $out.style.opacity = .55; } catch (e) { $out.textContent = pretty(expr); $out.style.opacity = .55; }
+  }
+  function renderHist() {
+    if (!hist.length) return;
+    $hist.innerHTML = hist.map((h, i) => `<div data-i="${i}"><span class="muted">${escapeHTML(pretty(h[0]))}</span><b>${escapeHTML(h[1])}</b></div>`).join("");
+  }
+  function press(k) {
+    if (k === "C") { expr = ""; justDone = false; return render(); }
+    if (k === "B") { expr = expr.replace(/(sqrt\(|pi|ans|.)$/, ""); return render(); }
+    if (k === "=") {
+      if (!expr) return;
+      try {
+        const r = fmt(evaluate(expr)); ans = +r;
+        hist = [[expr, r], ...hist].slice(0, 20); store.set("hist", hist); store.set("ans", ans); renderHist();
+        $out.style.opacity = 1; $expr.textContent = pretty(expr) + " ="; $out.textContent = r; expr = r; justDone = true;
+      } catch (e) { $out.textContent = e.message; $out.classList.add("err"); $out.style.opacity = 1; }
+      return;
+    }
+    if (justDone && /^[\d.(]|^sqrt|^pi/.test(k)) expr = "";
+    justDone = false;
+    expr += k; render();
+  }
+  document.getElementById("keys").onclick = (e) => { const b = e.target.closest("[data-k]"); if (b) press(b.dataset.k); };
+  $hist.onclick = (e) => { const d = e.target.closest("[data-i]"); if (d) { expr = hist[+d.dataset.i][0]; justDone = false; render(); } };
+  addEventListener("keydown", (e) => {
+    const map = { Enter: "=", "=": "=", Backspace: "B", Escape: "C", Delete: "C", x: "*", X: "*" };
+    const k = map[e.key] || (/^[\d.+\-*/%^()]$/.test(e.key) ? e.key : null);
+    if (k) { e.preventDefault(); press(k); }
+  });
+  renderHist(); render();
+})();
+</script>
+</body>
+</html>

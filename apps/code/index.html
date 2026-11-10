@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code playground</title>
+<link rel="stylesheet" href="/apps/app.css"><script src="/apps/app.js"></script>
+<style>
+  .wrap { gap: 10px; }
+  .split { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; min-height: 0; }
+  .eds { display: grid; grid-template-rows: repeat(3, 1fr); gap: 10px; min-height: 0; }
+  .ed { display: flex; flex-direction: column; min-height: 0; padding: 0; overflow: hidden; }
+  .ed b { padding: 8px 14px; font-size: 12px; letter-spacing: .08em; color: var(--muted); border-bottom: 1px solid var(--line); }
+  textarea { flex: 1; resize: none; border: 0; outline: none; background: rgba(0,0,0,.25); padding: 10px 14px; font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 2; white-space: pre; }
+  .out { border-radius: 20px; overflow: hidden; border: 1px solid var(--line-strong); background: #fff; }
+  iframe { width: 100%; height: 100%; border: 0; display: block; }
+  @media (max-width: 760px) { .split { grid-template-columns: 1fr; grid-template-rows: 1.3fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row"><h2>Code <span class="grad-text">playground</span></h2><span class="muted" style="font-size:13px">HTML, CSS and JavaScript with a live preview.</span><span style="flex:1"></span>
+    <label class="row muted" style="font-size:13px"><input type="checkbox" id="auto" checked> Auto-run</label>
+    <button class="btn sm" id="run">Run</button><button class="btn sm ghost" id="reset">Reset</button></div>
+  <div class="split">
+    <div class="eds">
+      <div class="panel ed"><b>HTML</b><textarea id="html" spellcheck="false"></textarea></div>
+      <div class="panel ed"><b>CSS</b><textarea id="css" spellcheck="false"></textarea></div>
+      <div class="panel ed"><b>JAVASCRIPT</b><textarea id="js" spellcheck="false"></textarea></div>
+    </div>
+    <div class="out"><iframe id="out" sandbox="allow-scripts allow-modals" title="Preview"></iframe></div>
+  </div>
+</div>
+<script>
+(function () {
+  const store = AppStore("code");
+  const START = {
+    html: '<h1>Hello!</h1>\n<p>Edit the code on the left.</p>\n<button id="b">Click me</button>',
+    css: 'body { font-family: system-ui; padding: 24px; background: #f5f3ff; }\nh1 { color: #7c3aed; }\nbutton { padding: 10px 18px; border-radius: 10px; border: 0; background: #ec4899; color: #fff; }',
+    js: 'let n = 0;\ndocument.getElementById("b").onclick = () => {\n  n++;\n  document.querySelector("p").textContent = "Clicked " + n + " times";\n};',
+  };
+  const $ = (id) => document.getElementById(id);
+  const code = store.get("code", START);
+  ["html", "css", "js"].forEach((k) => ($(k).value = code[k]));
+  let t;
+  function run() {
+    const c = { html: $("html").value, css: $("css").value, js: $("js").value };
+    store.set("code", c);
+    // The preview runs in a sandboxed frame with no access to this site.
+    $("out").srcdoc = `<!DOCTYPE html><html><head><style>${c.css}</style></head><body>${c.html}<script>${c.js.replace(/<\/script/gi, "<\\/script")}<\/script></body></html>`;
+  }
+  ["html", "css", "js"].forEach((k) => {
+    $(k).addEventListener("input", () => { if ($("auto").checked) { clearTimeout(t); t = setTimeout(run, 400); } });
+    $(k).addEventListener("keydown", (e) => {
+      if (e.key === "Tab") { e.preventDefault(); const s = e.target.selectionStart; e.target.setRangeText("  ", s, e.target.selectionEnd, "end"); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") run();
+    });
+  });
+  $("run").onclick = run;
+  $("reset").onclick = () => { if (!confirm("Reset to the starter code?")) return; ["html", "css", "js"].forEach((k) => ($(k).value = START[k])); run(); };
+  run();
+})();
+</script>
+</body>
+</html>

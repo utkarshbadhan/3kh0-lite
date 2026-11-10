@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notes</title>
+<link rel="stylesheet" href="/apps/app.css"><script src="/apps/app.js"></script>
+<style>
+  .wrap { flex-direction: row; }
+  .side { width: 260px; flex: none; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+  .list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .item { padding: 10px 12px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; }
+  .item:hover { background: rgba(255,255,255,.05); }
+  .item.on { background: color-mix(in srgb, var(--a1) 20%, transparent); border-color: color-mix(in srgb, var(--a1) 45%, transparent); }
+  .item b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item small { color: var(--muted); font-size: 12px; }
+  .editor { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .title { font-size: 26px; font-weight: 800; background: none; border: 0; outline: none; letter-spacing: -.02em; }
+  textarea { flex: 1; resize: none; background: none; border: 0; outline: none; font-size: 16px; line-height: 1.7; }
+  .status { font-size: 12px; color: var(--muted); }
+  .empty { flex: 1; display: grid; place-items: center; text-align: center; color: var(--muted); }
+  @media (max-width: 640px) { .wrap { flex-direction: column; } .side { width: auto; max-height: 38%; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel side">
+    <button class="btn" id="new">+ New note</button>
+    <input class="field" id="search" placeholder="Search notes…">
+    <div class="list" id="list"></div>
+  </div>
+  <div class="panel editor" id="editor"></div>
+</div>
+<script>
+(function () {
+  const store = AppStore("notes");
+  let notes = store.get("all", null);
+  if (!notes) notes = [{ id: Date.now(), title: "Welcome to Notes", body: "Everything you type here saves automatically in this browser.\n\nUse the button on the left to start a new note.", t: Date.now() }];
+  let cur = store.get("cur", notes[0] && notes[0].id), saveT;
+  const $list = document.getElementById("list"), $ed = document.getElementById("editor"), $q = document.getElementById("search");
+  const save = () => { store.set("all", notes); store.set("cur", cur); };
+  const when = (t) => new Date(t).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  function renderList() {
+    const q = $q.value.trim().toLowerCase();
+    const shown = notes.slice().sort((a, b) => b.t - a.t).filter((n) => !q || (n.title + " " + n.body).toLowerCase().includes(q));
+    $list.innerHTML = shown.map((n) => `<div class="item${n.id === cur ? " on" : ""}" data-id="${n.id}"><b>${escapeHTML(n.title || "Untitled")}</b><small>${when(n.t)}</small></div>`).join("") || '<div class="muted" style="padding:10px">No notes found.</div>';
+  }
+  function renderEditor() {
+    const n = notes.find((x) => x.id === cur);
+    if (!n) { $ed.innerHTML = '<div class="empty"><div><h2>No note selected</h2><p>Create one to get started.</p></div></div>'; return; }
+    $ed.innerHTML = `<input class="title" id="t" placeholder="Title" value="${escapeHTML(n.title)}">
+      <textarea id="b" placeholder="Start typing…">${escapeHTML(n.body)}</textarea>
+      <div class="row"><span class="status" id="st">Saved</span><span style="flex:1"></span>
+      <button class="btn sm ghost" id="dl">Download .txt</button><button class="btn sm ghost" id="del">Delete</button></div>`;
+    const t = document.getElementById("t"), b = document.getElementById("b"), st = document.getElementById("st");
+    const changed = () => { n.title = t.value; n.body = b.value; n.t = Date.now(); st.textContent = "Saving…"; clearTimeout(saveT); saveT = setTimeout(() => { save(); renderList(); st.textContent = "Saved"; }, 300); };
+    t.oninput = b.oninput = changed;
+    document.getElementById("del").onclick = () => { if (!confirm("Delete this note?")) return; notes = notes.filter((x) => x.id !== n.id); cur = notes[0] && notes[0].id; save(); renderList(); renderEditor(); };
+    document.getElementById("dl").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([n.title + "\n\n" + n.body], { type: "text/plain" })); a.download = (n.title || "note").replace(/[^\w\- ]+/g, "") + ".txt"; a.click(); };
+    b.focus();
+  }
+  document.getElementById("new").onclick = () => { const n = { id: Date.now(), title: "", body: "", t: Date.now() }; notes.push(n); cur = n.id; save(); renderList(); renderEditor(); document.getElementById("t").focus(); };
+  $list.onclick = (e) => { const it = e.target.closest("[data-id]"); if (it) { cur = +it.dataset.id; save(); renderList(); renderEditor(); } };
+  $q.oninput = renderList;
+  renderList(); renderEditor();
+})();
+</script>
+</body>
+</html>
