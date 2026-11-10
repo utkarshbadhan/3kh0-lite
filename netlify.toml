@@ -1,8 +1,10 @@
 # Static hosting for the games and apps, plus the chat function in
-# netlify/functions/. Netlify can't run the WebSocket proxy server.
+# netlify/functions/. Netlify can't run the WebSocket proxy server itself, so
+# the Proxy tab connects to a private server (see proxy-server/README.md).
+# The build step copies the proxy's browser files out of node_modules.
 [build]
   publish = "."
-  command = "echo static site"
+  command = "npm run build"
 
 [functions]
   directory = "netlify/functions"

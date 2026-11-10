@@ -5,7 +5,7 @@ A games site with a built-in web proxy. Every game is hosted in this repo (no th
 ## Features
 
 - **Games**: 145 self-hosted games with search, A to Z filter, sorting, favorites, recently played and play counts, all saved in the browser.
-- **Web proxy**: browse any site through this server. Built on [Ultraviolet](https://github.com/titaniumnetwork-dev/Ultraviolet) with a Wisp WebSocket tunnel, so the local network only sees a connection to this site.
+- **Web proxy**: browse any site through your own private, password-protected proxy server. Built on [Ultraviolet](https://github.com/titaniumnetwork-dev/Ultraviolet) with a Wisp WebSocket tunnel, so the local network only sees a connection to that server.
 - **Interactive sidebar**: collapsible, mobile drawer, number-key shortcuts, and "coming soon" slots for future sections.
 - **Search everything** with `Ctrl K` or `/`: games, sections, or any web address (opens in the proxy).
 - **Apps**: calculator, notes, paint, timer and stopwatch, unit converter, to-do list and a code playground. Each is a self-contained page in `apps/` that opens inside the site.
@@ -15,27 +15,23 @@ A games site with a built-in web proxy. Every game is hosted in this repo (no th
 
 ## Running it
 
-The proxy needs the Node server. Games alone work on any static host.
+The site (games, apps, chat) runs on Netlify. The web proxy runs on a separate private server that you control, locked with a password, and the Proxy tab connects to it.
+
+**Setting up the proxy server:** follow [proxy-server/README.md](proxy-server/README.md). It walks through a free Oracle Cloud VM and a one-command setup script that installs the proxy, sets the password and gets an HTTPS certificate.
+
+The proxy blocks requests to private and loopback addresses so it can't be used to reach the server's own network.
+
+### Running everything locally
 
 ```bash
 npm install
-npm start          # http://localhost:8080  (set PORT to change)
+npm run build      # copies the proxy's browser files into uv/, baremux/, epoxy/
+npm start          # site + proxy at http://localhost:8080 (set PORT to change)
 ```
 
-### Hosting
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/utkarshbadhan/3kh0-lite)
-
-The button uses `render.yaml` and gives you the full site, proxy included, on Render's free plan. `netlify.toml` is there for a games-only static deploy.
-
-| What you want | Where it works |
-| --- | --- |
-| Games and proxy | Any host that runs Node 18+ with WebSockets: Render, Railway, Fly.io, Koyeb, a VPS. Must be served over HTTPS (service workers require it). |
-| Games only | Any static host (Netlify, Cloudflare Pages, Vercel). The proxy page will show that it's offline. |
+Without `PROXY_PASSWORD_HASH` the local proxy has no password. To try the password lock, make a hash with `node server.js --hash-password` (type the password, then Ctrl-D) and start with `PROXY_PASSWORD_HASH='<hash>' npm start`.
 
 Note: the repo is about 1.4 GB because of the game files, which is over GitHub Pages' 1 GB limit.
-
-The proxy blocks requests to private and loopback addresses so it can't be used to reach the server's own network.
 
 ### Chat
 
@@ -56,7 +52,8 @@ index.html        app shell (sidebar, views are rendered by js/app.js)
 css/app.css       all styles and themes
 js/app.js         router, sidebar, games, proxy UI, tools, settings, search palette
 js/bg.js          animated canvas background
-js/proxy.js       proxy client (Ultraviolet + bare-mux + Epoxy)
+js/proxy.js       proxy client (Ultraviolet + bare-mux + Epoxy) and sign-in
+js/proxy-config.js  address of your private proxy server
 js/chat.js        chat client (Netlify function, Firebase, or local demo)
 netlify/functions/chat.mjs  chat backend on Netlify (messages in Netlify Blobs)
 js/chat-config.js chat database URL and room list
@@ -64,7 +61,9 @@ apps/<slug>/      the built-in apps (apps/app.css and apps/app.js are shared)
 database.rules.json  Firebase rules for chat
 js/main.js        tab disguise, also loaded by every game page
 uv/uv.config.js   Ultraviolet config
-server.js         static server + Wisp proxy backend
+server.js         proxy server (password lock + Wisp tunnel); also serves the site locally
+proxy-server/     setup script and guide for the private proxy server
+scripts/copy-proxy-assets.js  build step that copies the proxy's browser files
 config/games.json game catalog
 projects/<slug>/  the games
 ```
