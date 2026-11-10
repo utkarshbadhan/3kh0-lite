@@ -50,12 +50,12 @@
     { group: "Explore" },
     { id: "proxy", label: "Web proxy", icon: "globe", soon: !PROXY_ENABLED, badge: "NEW", live: true, blurb: "Browse any site privately", glow: "#22c55e" },
     { id: "apps", label: "Apps", icon: "apps", badge: "NEW", blurb: "Calculator, notes, paint and more", glow: "#38bdf8" },
+    { id: "music", label: "Music", icon: "music", badge: "NEW", blurb: "Spotify while you play", glow: "#1ed760" },
     { id: "chat", label: "Chat", icon: "chat", badge: "NEW", blurb: "Talk with friends", glow: "#f472b6" },
     { id: "tools", label: "Tools", icon: "tools", blurb: "Tab disguise, about:blank, panic key", glow: "#f59e0b" },
     { id: "settings", label: "Settings", icon: "gear", blurb: "Themes and effects", glow: "#94a3b8" },
     { group: "Coming soon" },
     { id: "movies", label: "Movies & TV", icon: "film", soon: true, blurb: "Watch together, ad-free" },
-    { id: "music", label: "Music", icon: "music", soon: true, blurb: "Stream while you play" },
   ];
   const NAV = SECTIONS.filter((s) => s.id);
   const JUMP = NAV.filter((s) => !s.soon); // number keys 1..9
@@ -698,6 +698,211 @@
       note($("#pk-note"), p.off ? "Panic key is off." : `Panic key is on: press <kbd>${esc(p.key)}</kbd>.`, true);
     };
   };
+
+  /* ---------- Music (Spotify's official embed player) ----------
+     Everything plays through open.spotify.com/embed iframes, so audio comes
+     straight from Spotify. Signed-in listeners get full tracks; everyone
+     else hears Spotify's 30-second previews. The player lives in a dock
+     outside #view so music keeps going while you browse or play games. */
+  const MUSIC = [
+    { type: "playlist", id: "37i9dQZF1DXcBWIGoYBM5M", name: "Today's Top Hits", sub: "The biggest songs right now", mood: "pop", emoji: "🔥", hue: 140 },
+    { type: "playlist", id: "37i9dQZF1DX0XUsuxWHRQd", name: "RapCaviar", sub: "New hip-hop every Friday", mood: "hype", emoji: "🎤", hue: 0 },
+    { type: "playlist", id: "37i9dQZF1DX76Wlfdnj7AP", name: "Beast Mode", sub: "Energy for the hard levels", mood: "hype", emoji: "⚡", hue: 20 },
+    { type: "playlist", id: "37i9dQZF1DX3rxVfibe1L0", name: "Mood Booster", sub: "Feel-good pop", mood: "pop", emoji: "😄", hue: 50 },
+    { type: "playlist", id: "37i9dQZF1DX10zKzsJ2jva", name: "Viva Latino", sub: "Today's top Latin hits", mood: "pop", emoji: "💃", hue: 330 },
+    { type: "playlist", id: "37i9dQZF1DX1lVhptIYRda", name: "Hot Country", sub: "Country's biggest songs", mood: "pop", emoji: "🤠", hue: 35 },
+    { type: "playlist", id: "37i9dQZF1DWWQRwui0ExPn", name: "lofi beats", sub: "Beats to relax and study to", mood: "focus", emoji: "🎧", hue: 265 },
+    { type: "playlist", id: "37i9dQZF1DWZeKCadgRdKQ", name: "Deep Focus", sub: "Ambient, no lyrics", mood: "focus", emoji: "🧠", hue: 200 },
+    { type: "playlist", id: "37i9dQZF1DX4sWSpwq3LiO", name: "Peaceful Piano", sub: "Calm piano pieces", mood: "focus", emoji: "🎹", hue: 220 },
+    { type: "playlist", id: "37i9dQZF1DX4WYpdgoIcn6", name: "Chill Hits", sub: "Kick back to chill songs", mood: "chill", emoji: "🌊", hue: 185 },
+    { type: "playlist", id: "37i9dQZF1DWXRqgorJj26U", name: "Rock Classics", sub: "Rock legends", mood: "throwback", emoji: "🎸", hue: 10 },
+    { type: "playlist", id: "37i9dQZF1DX4o1oenSJRJd", name: "All Out 2000s", sub: "The biggest songs of the 2000s", mood: "throwback", emoji: "📼", hue: 290 },
+    { type: "playlist", id: "37i9dQZF1DX4UtSsGT1Sbe", name: "All Out 80s", sub: "Synths and big hair", mood: "throwback", emoji: "🕺", hue: 310 },
+    { type: "show", id: "0ofXAdFIQQRsCYj9754UFx", name: "Stuff You Should Know", sub: "How everything works", mood: "podcasts", emoji: "💡", hue: 45 },
+    { type: "show", id: "69sjBFW3sx5U8f1buplmTh", name: "Crash Course", sub: "Quick lessons on big topics", mood: "podcasts", emoji: "📚", hue: 160 },
+    { type: "show", id: "2CrsGIq5kZ1tdhfR8ErLjV", name: "Everything Everywhere Daily", sub: "History, science and geography", mood: "podcasts", emoji: "🌍", hue: 120 },
+    { type: "show", id: "4fZTfiBKd3DEUTGguRJfdb", name: "BrainStuff", sub: "Short science explainers", mood: "podcasts", emoji: "🧪", hue: 280 },
+    { type: "show", id: "1l3aIVJ1FVrHSixsgrJ1f4", name: "The Weirdest Thing I Learned This Week", sub: "From Popular Science", mood: "podcasts", emoji: "🦑", hue: 350 },
+    { type: "show", id: "58XWGAOSRXI72aLdVeN8eS", name: "The Complete History of Science", sub: "From astronomy onward", mood: "podcasts", emoji: "🔭", hue: 230 },
+  ];
+  const MOODS = [["all", "All"], ["pop", "Top hits"], ["hype", "Hype"], ["focus", "Focus"], ["chill", "Chill"], ["throwback", "Throwback"], ["podcasts", "Podcasts"], ["saved", "Saved"]];
+  const SP_TYPES = { track: "Song", album: "Album", playlist: "Playlist", artist: "Artist", show: "Podcast", episode: "Episode", audiobook: "Audiobook" };
+  const spKey = (it) => it.type + ":" + it.id;
+
+  // Turns a Spotify share link, embed link or spotify: URI into {type, id}.
+  function parseSpotify(input) {
+    const s = String(input || "").trim();
+    const types = Object.keys(SP_TYPES).join("|");
+    let m = s.match(new RegExp(`^spotify:(${types}):([A-Za-z0-9]{22})$`, "i"));
+    if (!m) {
+      let u;
+      try { u = new URL(/^https?:\/\//i.test(s) ? s : "https://" + s); } catch { return null; }
+      const host = u.hostname.toLowerCase();
+      if (host === "spotify.link" || host.endsWith(".spotify.link") || host === "spoti.fi") return { short: true };
+      if (host !== "open.spotify.com" && host !== "play.spotify.com") return null;
+      m = u.pathname.match(new RegExp(`^/(?:intl-[a-z]{2}(?:-[a-z]{2})?/)?(?:embed/)?(?:user/[^/]+/)?(${types})/([A-Za-z0-9]{22})(?:/|$)`, "i"));
+    }
+    return m ? { type: m[1].toLowerCase(), id: m[2] } : null;
+  }
+  const embedSrc = (it) => `https://open.spotify.com/embed/${it.type}/${it.id}?utm_source=generator&theme=0`;
+
+  // Best-effort title and cover art for pasted links, from Spotify's public oEmbed endpoint.
+  async function spotifyInfo(it) {
+    try {
+      const r = await fetch("https://open.spotify.com/oembed?url=" + encodeURIComponent(`https://open.spotify.com/${it.type}/${it.id}`));
+      if (!r.ok) return {};
+      const j = await r.json();
+      return { name: j.title || "", thumb: /^https:\/\//.test(j.thumbnail_url || "") ? j.thumbnail_url : "" };
+    } catch { return {}; }
+  }
+
+  let musicSaved = store.get("musicSaved", []);
+  let musicNow = store.get("musicNow", null);
+  let dock = null;
+
+  function ensureDock() {
+    if (dock) return dock;
+    dock = document.createElement("div");
+    dock.className = "music-dock";
+    dock.hidden = true;
+    dock.innerHTML = `<div class="md-bar">
+        <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <a class="md-title" href="#/music" title="Open Music"></a>
+        <button class="icon-btn md-min" title="Make smaller">${svg("back")}</button>
+        <button class="icon-btn md-close" title="Stop and close">✕</button>
+      </div>
+      <iframe class="md-frame" title="Spotify player" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+    document.body.appendChild(dock);
+    $(".md-min", dock).onclick = () => { const s = !dock.classList.contains("small"); dock.classList.toggle("small", s); store.set("musicSmall", s); };
+    $(".md-close", dock).onclick = () => stopMusic();
+    dock.classList.toggle("small", store.get("musicSmall", false));
+    return dock;
+  }
+
+  function playMusic(it) {
+    ensureDock();
+    const frame = $(".md-frame", dock);
+    const same = musicNow && spKey(musicNow) === spKey(it) && frame.getAttribute("src");
+    musicNow = { type: it.type, id: it.id, name: it.name || SP_TYPES[it.type] };
+    store.set("musicNow", musicNow);
+    if (!same) frame.src = embedSrc(it);
+    $(".md-title", dock).textContent = musicNow.name;
+    dock.hidden = false;
+    document.body.classList.add("has-music");
+    $$(".mu-tile").forEach((t) => t.classList.toggle("playing", t.dataset.key === spKey(it)));
+    const empty = $("#mu-empty"); if (empty) empty.hidden = true;
+  }
+
+  function stopMusic() {
+    if (!dock) return;
+    $(".md-frame", dock).removeAttribute("src");
+    dock.hidden = true;
+    document.body.classList.remove("has-music");
+    musicNow = null; store.set("musicNow", null);
+    $$(".mu-tile.playing").forEach((t) => t.classList.remove("playing"));
+    const empty = $("#mu-empty"); if (empty) empty.hidden = false;
+  }
+
+  const tileHTML = (it, i, saved) => {
+    const art = it.thumb
+      ? `<span class="mu-art img" style="background-image:url('${esc(it.thumb)}')"></span>`
+      : `<span class="mu-art" style="--h:${it.hue == null ? (i * 47) % 360 : it.hue}"><span>${it.emoji || "🎵"}</span></span>`;
+    return `<div class="mu-tile${musicNow && spKey(musicNow) === spKey(it) ? " playing" : ""}" data-key="${esc(spKey(it))}" style="--i:${i}">
+      <button class="mu-play" title="Play ${esc(it.name)}">${art}<span class="mu-btn">${svg("play")}</span><span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span></button>
+      <b>${esc(it.name)}</b><small>${esc(SP_TYPES[it.type] || "")}${it.sub ? " · " + esc(it.sub) : ""}</small>
+      ${saved ? `<button class="mu-del" title="Remove from saved">✕</button>` : ""}
+    </div>`;
+  };
+
+  VIEWS.music = (arg) => {
+    const mood = MOODS.some(([k]) => k === arg) ? arg : "all";
+    const list = mood === "saved" ? musicSaved : MUSIC.filter((m) => mood === "all" || m.mood === mood);
+    view.innerHTML = `<div class="page music">
+      <div class="page-head mu-head"><h1><span class="grad-text">Music</span></h1><p>Stream Spotify right here while you play. Pick a playlist or podcast, or paste any Spotify link. It keeps playing when you switch to a game.</p></div>
+      <div class="mu-main">
+        <form class="mu-paste" id="mu-form">
+          <span class="mu-paste-ico">${svg("music")}</span>
+          <input class="field" id="mu-link" placeholder="Paste a Spotify link: song, album, playlist, artist or podcast" autocomplete="off" spellcheck="false">
+          <button class="btn sm" id="mu-go">${svg("play")} Play</button>
+        </form>
+        <p class="mu-hint muted">In Spotify, tap <b>Share</b> then <b>Copy link</b>. Links that start with <code>open.spotify.com</code> or <code>spotify:</code> work here.</p>
+        <div class="chips mu-moods">${MOODS.map(([k, l]) => `<a class="chip${k === mood ? " active" : ""}" href="#/music${k === "all" ? "" : "/" + k}">${esc(l)}${k === "saved" && musicSaved.length ? ` <small>${musicSaved.length}</small>` : ""}</a>`).join("")}</div>
+        <div class="mu-grid" id="mu-grid">${list.length ? list.map((it, i) => tileHTML(it, i, mood === "saved")).join("")
+          : `<div class="mu-none muted">Nothing saved yet. Anything you paste above is saved here so you can play it again.</div>`}</div>
+      </div>
+      <aside class="mu-side">
+        <div class="mu-slot" id="mu-slot"><div class="mu-empty" id="mu-empty" ${musicNow ? "hidden" : ""}>
+          <div class="vinyl" aria-hidden="true"><i></i></div>
+          <b>Nothing playing yet</b><small class="muted">Pick something on the left to start the player.</small>
+        </div></div>
+        <div class="card mu-note">
+          <b>${svg("lock")} Full songs or previews?</b>
+          <p>If you're signed in to Spotify in this browser, the player plays full tracks. If not, Spotify plays 30-second previews. Use <b>Log in</b> inside the player, or sign in at spotify.com in this browser.</p>
+          <p class="muted">Audio comes straight from Spotify's own player. ScienceTube doesn't copy or store any of it.</p>
+        </div>
+      </aside>
+    </div>`;
+
+    const grid = $("#mu-grid");
+    const items = new Map(list.map((it) => [spKey(it), it]));
+    grid.addEventListener("click", (e) => {
+      const tile = e.target.closest(".mu-tile"); if (!tile) return;
+      const it = items.get(tile.dataset.key); if (!it) return;
+      if (e.target.closest(".mu-del")) {
+        musicSaved = musicSaved.filter((s) => spKey(s) !== tile.dataset.key);
+        store.set("musicSaved", musicSaved);
+        route(); return;
+      }
+      if (e.target.closest(".mu-play")) playMusic(it);
+    });
+
+    $("#mu-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const input = $("#mu-link");
+      const p = parseSpotify(input.value);
+      if (!p) { toast("That doesn't look like a Spotify link."); input.focus(); return; }
+      if (p.short) { toast("Short spotify.link links can't be read here. Open it, then copy the open.spotify.com link."); return; }
+      let it = musicSaved.find((s) => spKey(s) === spKey(p)) || MUSIC.find((s) => spKey(s) === spKey(p));
+      if (!it) {
+        it = { ...p, name: SP_TYPES[p.type], added: Date.now() };
+        musicSaved.unshift(it); musicSaved = musicSaved.slice(0, 60);
+        store.set("musicSaved", musicSaved);
+        toast("Saved to your music.");
+        spotifyInfo(p).then((info) => {
+          if (!info.name && !info.thumb) return;
+          Object.assign(it, info.name ? { name: info.name } : {}, info.thumb ? { thumb: info.thumb } : {});
+          store.set("musicSaved", musicSaved);
+          if (musicNow && spKey(musicNow) === spKey(it)) { musicNow.name = it.name; store.set("musicNow", musicNow); if (dock) $(".md-title", dock).textContent = it.name; }
+          if (/^#\/music\/saved/.test(location.hash)) route();
+        });
+      }
+      input.value = "";
+      playMusic(it);
+      if (mood !== "saved" && !items.has(spKey(it))) location.hash = "#/music/saved";
+    };
+
+    // On this page the dock sits over the right-hand slot; elsewhere it shrinks to a corner mini-player.
+    ensureDock();
+    if (musicNow) playMusic(musicNow);
+    dock.classList.add("in-page");
+    let raf = 0, last = "";
+    const follow = () => {
+      const slot = $("#mu-slot");
+      if (slot) {
+        const r = slot.getBoundingClientRect();
+        const clip = Math.max(0, Math.round(view.getBoundingClientRect().top - r.top));
+        const key = [r.left, r.top, r.width].map(Math.round).join() + "," + clip;
+        if (key !== last) { last = key; Object.assign(dock.style, { left: r.left + "px", top: r.top + "px", width: r.width + "px", clipPath: clip ? `inset(${clip}px 0 0 0)` : "" }); }
+      }
+      raf = requestAnimationFrame(follow);
+    };
+    follow();
+    cleanup.push(() => { cancelAnimationFrame(raf); dock.classList.remove("in-page"); dock.style.left = dock.style.top = dock.style.width = dock.style.clipPath = ""; });
+    return { crumb: mood === "all" ? "" : MOODS.find(([k]) => k === mood)[1], nav: "music" };
+  };
+
+  // Bring back the last thing that was playing, as a mini-player (Spotify won't autoplay it).
+  if (musicNow) setTimeout(() => { if (!dock || dock.hidden) playMusic(musicNow); }, 0);
 
   /* ---------- Settings ---------- */
   const THEMES = [["nebula", "Nebula", "#8b5cf6", "#ec4899"], ["ocean", "Ocean", "#3b82f6", "#22d3ee"], ["sunset", "Sunset", "#f97316", "#ec4899"], ["toxic", "Toxic", "#84cc16", "#10b981"], ["ember", "Ember", "#ef4444", "#f59e0b"]];
