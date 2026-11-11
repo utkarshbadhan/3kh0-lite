@@ -159,7 +159,7 @@
   function card(g, i = 0) {
     const on = favs.has(g.slug);
     return `<a class="game" href="#/play/${encodeURIComponent(g.slug)}" style="--i:${Math.min(i, 40)}" data-slug="${esc(g.slug)}">
-      <div class="thumb"><img loading="lazy" decoding="async" src="${esc(g.imgSrc)}" alt="" onerror="this.style.opacity=0"></div>
+      <div class="thumb"><img loading="lazy" decoding="async" src="${esc(g.imgSrc)}" alt="" onload="this.classList.add('ok')" onerror="this.classList.add('bad')"></div>
       <div class="glare"></div>
       <button class="fav${on ? " on" : ""}" data-fav="${esc(g.slug)}" aria-pressed="${on}" aria-label="Favorite ${esc(g.title)}">${svg("heart")}</button>
       <div class="meta"><b>${esc(g.title)}</b><small>${svg("play")} Play now${plays[g.slug] ? ` · ${plays[g.slug]}×` : ""}</small></div>
@@ -226,7 +226,7 @@
     view.innerHTML = `<div class="page">
       <section class="hero">
         <div>
-          <span class="hero-kicker"><i></i> ${games.length} games hosted right here · no installs</span>
+          <span class="hero-kicker"><i></i> ${greeting()} · ${games.length} games hosted right here</span>
           <h1>Play <span class="swap" id="swap"><span>${words[0]}</span></span><br>Browse freely.</h1>
           <p>A whole arcade that loads instantly in your browser, ${PROXY_ENABLED ? "plus a built-in web proxy to reach the rest of the internet privately." : "with no installs, no downloads and no waiting."}</p>
           <div class="hero-actions">
@@ -241,6 +241,14 @@
         </div>
         <div class="spotlight" id="spotlight"><div class="spot-orbit"></div></div>
       </section>
+
+      <div class="marquee" aria-label="Some of the games on ScienceTube">
+        ${[0, 1].map((row) => {
+          const picks = shuffle(games).slice(0, 14);
+          const cells = picks.map((g) => `<a href="#/play/${encodeURIComponent(g.slug)}" tabindex="-1" title="${esc(g.title)}"><img loading="lazy" decoding="async" src="${esc(g.imgSrc)}" alt=""></a>`).join("");
+          return `<div class="marquee-row${row ? " rev" : ""}"><div class="marquee-track">${cells}${cells}</div></div>`;
+        }).join("")}
+      </div>
 
       <div class="section-title"><h2>Jump to</h2></div>
       <div class="quick">${NAV.filter((s) => s.id !== "home").map((s) => `
@@ -258,7 +266,30 @@
 
       <div class="section-title"><h2>Fresh picks</h2><a class="more" href="#/games">Browse all ${games.length}</a></div>
       <div class="rail">${shuffle(games).slice(0, 14).map(card).join("")}</div>
+
+      <footer class="home-foot">
+        <span class="brand-orb sm" aria-hidden="true"></span>
+        <span><b>ScienceTube</b> · every game runs right here, nothing to install.</span>
+        <span class="home-foot-links">
+          <button class="linkish" id="replay-intro">${svg("sparkle")} Replay intro</button>
+          <button class="linkish" id="show-keys"><kbd>?</kbd> Shortcuts</button>
+        </span>
+      </footer>
     </div>`;
+
+    $("#replay-intro").onclick = () => window.STIntro && STIntro.play();
+    $("#show-keys").onclick = () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "?" }));
+
+    // Spotlight leans with the cursor.
+    const hero = $(".hero");
+    if (matchMedia("(pointer: fine)").matches) {
+      hero.addEventListener("pointermove", (e) => {
+        const r = hero.getBoundingClientRect();
+        hero.style.setProperty("--px", ((e.clientX - r.left) / r.width - 0.5).toFixed(3));
+        hero.style.setProperty("--py", ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
+      });
+      hero.addEventListener("pointerleave", () => { hero.style.setProperty("--px", 0); hero.style.setProperty("--py", 0); });
+    }
 
     $$("[data-count]", view).forEach((el) => countUp(el, +el.dataset.count));
 
@@ -287,6 +318,11 @@
     const t2 = setInterval(show, 4800);
     cleanup.push(() => { clearInterval(t1); clearInterval(t2); });
   };
+
+  function greeting() {
+    const h = new Date().getHours();
+    return h < 5 ? "Up late?" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : h < 22 ? "Good evening" : "Up late?";
+  }
 
   function gameList({ title, sub, source, emptyMsg, emptyIcon }) {
     return async (arg, params) => {
@@ -357,6 +393,16 @@
     source: () => recent.map((s) => bySlug.get(s)).filter(Boolean), emptyMsg: "Nothing here yet. Play something!", emptyIcon: "⏱️",
   });
 
+  const TIPS = [
+    "Tip: press Fullscreen for the best experience.",
+    "Tip: tap the heart to save this game to Favorites.",
+    "Tip: press R anywhere to play a random game.",
+    "Tip: Ctrl K searches every game and app.",
+    "Tip: the panic key (`) whisks you away to another site.",
+    "Tip: open games in a disguised about:blank tab from the top bar.",
+    "Tip: press ? to see every keyboard shortcut.",
+  ];
+
   VIEWS.play = async (slug) => {
     await gamesReady;
     const g = bySlug.get(slug);
@@ -378,7 +424,15 @@
         <button class="btn sm" id="p-full">${svg("full")} Fullscreen</button>
       </div>
       <div class="stage" id="stage">
-        <div class="loading" id="p-loading"><div style="text-align:center"><div class="spinner" style="margin:0 auto 14px"></div><span class="muted">Loading ${esc(g.title)}…</span></div></div>
+        <div class="loading" id="p-loading">
+          <div class="loading-bg" style="background-image:url('${esc(g.imgSrc)}')"></div>
+          <div class="loading-card">
+            <div class="loading-cover"><img src="${esc(g.imgSrc)}" alt=""><span class="loading-ring"></span></div>
+            <b>${esc(g.title)}</b>
+            <div class="loading-bar"><i></i></div>
+            <small class="muted" id="p-tip">${esc(TIPS[(Math.random() * TIPS.length) | 0])}</small>
+          </div>
+        </div>
         <iframe id="frame" src="${esc(g.link)}" allow="fullscreen; autoplay; gamepad; clipboard-write" allowfullscreen></iframe>
       </div>`;
     const frame = $("#frame");
@@ -980,6 +1034,7 @@
         <div class="card"><h3>${svg("gear")} Interface</h3><p>Performance and layout.</p>
           <label class="toggle"><span>Animated background</span><span class="switch"><input type="checkbox" id="s-bg" ${store.get("bg", true) ? "checked" : ""}><span></span></span></label>
           <label class="toggle"><span>Reduce motion</span><span class="switch"><input type="checkbox" id="s-calm" ${store.get("calm", false) ? "checked" : ""}><span></span></span></label>
+          <label class="toggle"><span>Intro animation on arrival</span><span class="switch"><input type="checkbox" id="s-intro" ${store.get("intro", true) ? "checked" : ""}><span></span></span></label>
           <label class="toggle"><span>Compact sidebar</span><span class="switch"><input type="checkbox" id="s-col" ${document.body.classList.contains("collapsed") ? "checked" : ""}><span></span></span></label>
         </div>
         ${PROXY_ENABLED ? "" : "<!--"}<div class="card"><h3>${svg("globe")} Proxy search engine</h3><p>Used when you type words instead of a URL in the proxy.</p>
@@ -989,7 +1044,8 @@
           <button class="btn sm ghost" id="s-clear">Clear favorites and history</button>
         </div>
         <div class="card"><h3>${svg("bolt")} Keyboard shortcuts</h3>
-          <p style="line-height:2.1;margin:0"><kbd>Ctrl</kbd> <kbd>K</kbd> or <kbd>/</kbd> search everything<br><kbd>1</kbd>–<kbd>${Math.min(9, JUMP.length)}</kbd> jump to a section<br><kbd>[</kbd> collapse the sidebar<br><kbd>R</kbd> random game</p>
+          <p style="line-height:2.1;margin:0"><kbd>Ctrl</kbd> <kbd>K</kbd> or <kbd>/</kbd> search everything<br><kbd>1</kbd>–<kbd>${Math.min(9, JUMP.length)}</kbd> jump to a section<br><kbd>[</kbd> collapse the sidebar<br><kbd>R</kbd> random game<br><kbd>?</kbd> all shortcuts</p>
+          <button class="btn sm ghost" id="s-replay" style="margin-top:12px">${svg("sparkle")} Replay the intro</button>
         </div>
       </div>
     </div>`;
@@ -1000,6 +1056,8 @@
     $("#s-bg").onchange = (e) => { store.set("bg", e.target.checked); NebulaBG.setEnabled(e.target.checked); };
     $("#s-calm").onchange = (e) => { store.set("calm", e.target.checked); document.body.classList.toggle("calm", e.target.checked); };
     $("#s-col").onchange = (e) => setCollapsed(e.target.checked);
+    $("#s-intro").onchange = (e) => store.set("intro", e.target.checked);
+    $("#s-replay").onclick = () => window.STIntro && STIntro.play();
     if ($("#s-engine")) $("#s-engine").value = store.get("engine", "duckduckgo");
     if ($("#s-engine")) $("#s-engine").onchange = (e) => { store.set("engine", e.target.value); const i = proxyEl && $("#px-input", proxyEl); if (i) i.placeholder = `Search ${e.target.value} or type a URL`; };
     $("#s-clear").onclick = () => {

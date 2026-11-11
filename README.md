@@ -4,6 +4,8 @@ A games site with a built-in web proxy. Every game is hosted in this repo (no th
 
 ## Features
 
+- **Arrival intro**: a warp-speed jump through the stars that pulls together into the ScienceTube wordmark, then a "Start playing" button. Shown once per visit on the home page, skippable with `Esc`, calm and static with reduced motion, and replayable or switchable off in Settings.
+- **Polish**: sliding sidebar highlight, page and scroll animations, a scrolling strip of game covers on Home, holographic card sheen, a game loading screen with tips, rail arrows, back-to-top, a `?` shortcut sheet and a bottom tab bar on phones.
 - **Games**: 145 self-hosted games with search, A to Z filter, sorting, favorites, recently played and play counts, all saved in the browser.
 - **Web proxy**: browse any site through your own private, password-protected proxy server. Built on [Ultraviolet](https://github.com/titaniumnetwork-dev/Ultraviolet) with a Wisp WebSocket tunnel, so the local network only sees a connection to that server.
 - **Interactive sidebar**: collapsible, mobile drawer, number-key shortcuts, and "coming soon" slots for future sections.
@@ -11,7 +13,7 @@ A games site with a built-in web proxy. Every game is hosted in this repo (no th
 - **Apps**: calculator, notes, paint, timer and stopwatch, unit converter, to-do list and a code playground. Each is a self-contained page in `apps/` that opens inside the site.
 - **Chat**: rooms with nicknames. On Netlify it works out of the box through a small serverless function that stores messages in Netlify Blobs.
 - **Tools**: about:blank launcher, tab disguise (title and icon), panic key.
-- **Settings**: five color themes, animated background toggle, reduce motion, compact sidebar, proxy search engine.
+- **Settings**: five color themes, animated background toggle, reduce motion, intro on/off and replay, compact sidebar, proxy search engine.
 
 ## Running it
 
@@ -50,6 +52,9 @@ With neither available (for example a plain static server), chat runs in a label
 ```
 index.html        app shell (sidebar, views are rendered by js/app.js)
 css/app.css       all styles and themes
+css/intro.css     arrival intro styles
+js/intro.js       arrival intro animation (canvas)
+js/fx.js          interface polish: nav highlight, reveals, ripples, shortcut sheet, mobile tab bar
 js/app.js         router, sidebar, games, proxy UI, tools, settings, search palette
 js/bg.js          animated canvas background
 js/proxy.js       proxy client (Ultraviolet + bare-mux + Epoxy) and sign-in
