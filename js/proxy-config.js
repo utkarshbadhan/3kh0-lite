@@ -6,5 +6,5 @@
 // which only works when the site itself is run with `npm start`.
 // The address can also be changed on the Proxy tab's sign-in screen.
 window.SCIENCETUBE_PROXY = {
-  server: "",
+  server: "https://nodehttp215f.velixir.run",
 };
