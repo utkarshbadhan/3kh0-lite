@@ -1,0 +1,30 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "server.js",
+      "velixir-backend/**",
+      "netlify/**",
+      "scripts/**",
+      "package.json",
+      "package-lock.json",
+      "README.md",
+      "**/.env*"
+    ],
+    "predeploy": "npm install && npm run build",
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          }
+        ]
+      }
+    ]
+  }
+}
