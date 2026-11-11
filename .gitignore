@@ -1,2 +1,7 @@
 node_modules/
 .DS_Store
+# Built by scripts/copy-proxy-assets.js
+/baremux/
+/epoxy/
+/uv/*
+!/uv/uv.config.js

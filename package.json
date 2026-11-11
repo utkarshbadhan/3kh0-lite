@@ -2,10 +2,11 @@
   "name": "sciencetube",
   "version": "2.0.0",
   "private": true,
-  "description": "Self-hosted browser games plus a built-in web proxy.",
+  "description": "Self-hosted browser games plus a private web proxy.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "node scripts/copy-proxy-assets.js"
   },
   "engines": {
     "node": ">=18"

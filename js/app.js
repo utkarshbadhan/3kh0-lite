@@ -37,9 +37,10 @@
      Sections — add a new sidebar entry here and give it a render
      function in VIEWS below. Entries marked `soon` show a teaser page.
   ------------------------------------------------------------------ */
-  // The web proxy needs the Node server (server.js). Set this to true once the
-  // site is hosted somewhere that runs it; until then it shows as "Coming soon".
-  const PROXY_ENABLED = false;
+  // The web proxy needs a server running server.js: this site itself, or a
+  // private server whose address is in js/proxy-config.js. Set this to false
+  // to show the Proxy tab as "Coming soon" instead.
+  const PROXY_ENABLED = true;
 
   const SECTIONS = [
     { group: "Play" },
@@ -523,7 +524,23 @@
       <div class="proxy-home page" id="px-home">
         <span class="status-line" id="px-status"><i></i><span>Checking proxy…</span></span>
         <h1>Browse <span class="grad-text">without limits</span></h1>
-        <p>Type a website or a search. Pages load through this site’s own server, so your network only sees a connection to ScienceTube.</p>
+        <p>Type a website or a search. Pages load through your private proxy server, so your network only sees a connection to it, never the sites you visit.</p>
+        <form class="card px-login" id="px-login" autocomplete="on" hidden>
+          <b>${svg("lock")} Private proxy</b>
+          <p class="muted" id="px-login-msg">Sign in with the proxy password to start browsing.</p>
+          <label class="px-server-row" id="px-server-row" hidden>Server address
+            <input class="field" id="px-server" name="server" placeholder="https://your-proxy.duckdns.org" spellcheck="false" autocomplete="url">
+          </label>
+          <input type="text" name="username" value="sciencetube" autocomplete="username" hidden>
+          <label>Password
+            <input class="field" id="px-pass" name="password" type="password" autocomplete="current-password" required>
+          </label>
+          <p class="px-error" id="px-error" role="alert"></p>
+          <div class="px-login-actions">
+            <button class="btn" type="submit" id="px-signin">${svg("lock")} Sign in</button>
+            <button class="btn ghost" type="button" id="px-change">Change server</button>
+          </div>
+        </form>
         <form class="omni" id="px-form" autocomplete="off">
           ${svg("search")}
           <input class="field" id="px-input" placeholder="Search ${esc(engine)} or type a URL" spellcheck="false">
@@ -531,11 +548,11 @@
         </form>
         <div class="shortcuts">${sites.map(([n, u, c, l]) => `<button data-url="https://${u}"><span class="logo" style="background:${c}">${l}</span><small>${n}</small></button>`).join("")}</div>
         <div class="proxy-notes">
-          <div class="card"><b>${svg("lock")} Encrypted tunnel</b>Everything travels over one encrypted WebSocket to this server. Filters see the site you’re on, not the pages you visit.</div>
+          <div class="card"><b>${svg("lock")} Encrypted tunnel</b>Everything travels over one encrypted WebSocket to your proxy server. Filters only see that server, not the pages you visit.</div>
           <div class="card"><b>${svg("eye")} Hides your IP</b>Websites see the server’s address, not yours. Cookies stay inside the proxy.</div>
           <div class="card"><b>${svg("shield")} Know the limits</b>The server operator can still see traffic, and logging in to accounts identifies you. For strong anonymity use Tor.</div>
         </div>
-        <div class="offline card" id="px-offline" hidden></div>
+        <button class="px-signout" id="px-signout" hidden>Sign out of the proxy</button>
       </div>
       <div class="browser" id="px-browser">
         <div class="browser-bar">
@@ -560,17 +577,54 @@
     const home = $("#px-home", proxyEl), browser = $("#px-browser", proxyEl), frame = $("#px-frame", proxyEl);
     const status = $("#px-status", proxyEl), urlField = $("#px-url", proxyEl), loading = $("#px-loading", proxyEl);
 
-    NebulaProxy.check().then((ok) => {
+    const login = $("#px-login", proxyEl), loginErr = $("#px-error", proxyEl), serverIn = $("#px-server", proxyEl);
+    const serverRow = $("#px-server-row", proxyEl), signout = $("#px-signout", proxyEl);
+    const ready = [$("#px-form", proxyEl), $(".shortcuts", proxyEl)];
+
+    // Shows the sign-in card or the browser home depending on the server's state.
+    const paint = (s) => {
+      const ok = s.online && s.signedIn;
       status.className = "status-line " + (ok ? "on" : "off");
-      status.lastElementChild.textContent = ok ? "Proxy online" : "Proxy offline";
+      status.lastElementChild.textContent = ok ? "Proxy online" : !s.online ? "Proxy offline" : "Sign in required";
       setProxyDot(ok);
-      if (!ok) {
-        const off = $("#px-offline", proxyEl);
-        off.hidden = false;
-        off.innerHTML = `<b>${svg("bolt")} The proxy server isn’t running here</b>
-          <p class="muted" style="margin:6px 0 0">The games work on any static host, but the proxy needs the Node server in this repo. Run <code>npm install</code> then <code>npm start</code>, or deploy to a host that runs Node with WebSockets (Render, Railway, Fly.io, Koyeb, or a VPS). It must be served over HTTPS.</p>`;
-      }
+      ready.forEach((el) => (el.style.display = ok ? "" : "none"));
+      login.hidden = ok;
+      signout.hidden = !(ok && s.auth);
+      if (ok) return;
+      const sameSite = s.server === location.origin;
+      serverIn.value = sameSite ? "" : s.server;
+      if (!s.online || sameSite) serverRow.hidden = false;
+      $("#px-change", proxyEl).hidden = !serverRow.hidden;
+      $("#px-login-msg", proxyEl).textContent = s.online
+        ? "This proxy is private. Sign in with the password to start browsing."
+        : sameSite
+          ? "Enter the address of your proxy server and its password."
+          : `Can't reach the proxy server at ${s.server}. Check the address, or the server may be off.`;
+    };
+    const refresh = (force) => NebulaProxy.status(force).then(paint);
+    proxyEl.refresh = refresh;
+
+    $("#px-change", proxyEl).onclick = (e) => { serverRow.hidden = false; e.currentTarget.hidden = true; serverIn.focus(); };
+    login.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = $("#px-signin", proxyEl);
+      loginErr.textContent = "";
+      btn.disabled = true;
+      try {
+        const srv = serverRow.hidden ? undefined : (serverIn.value.trim() || location.origin);
+        paint(await NebulaProxy.login($("#px-pass", proxyEl).value, srv));
+        $("#px-pass", proxyEl).value = "";
+        toast("Signed in to the proxy");
+        $("#px-input", proxyEl).focus();
+      } catch (err) {
+        loginErr.textContent = err.message;
+      } finally { btn.disabled = false; }
     });
+    signout.onclick = () => {
+      NebulaProxy.logout();
+      $("#px-homebtn", proxyEl).click();
+      refresh();
+    };
 
     const go = async (input) => {
       const url = NebulaProxy.toUrl(input, store.get("engine", "duckduckgo"));
@@ -580,7 +634,8 @@
         await NebulaProxy.ready();
       } catch (e) {
         loading.classList.add("done");
-        toast(e.message === "offline" ? "Proxy offline. See the note below." : e.message);
+        if (e.message === "offline" || e.message === "signin") { refresh(true); return; }
+        toast(e.message);
         return;
       }
       home.style.display = "none";
@@ -612,6 +667,7 @@
   VIEWS.proxy = (arg, params) => {
     if (!proxyEl) buildProxy();
     proxyEl.style.display = "";
+    if (!$("#px-browser", proxyEl).classList.contains("open")) proxyEl.refresh();
     view.style.display = "none";
     const q = params.get("q");
     if (q) { $("#px-input", proxyEl).value = q; $("#px-form", proxyEl).requestSubmit(); }

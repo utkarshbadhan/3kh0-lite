@@ -324,7 +324,7 @@ body:not(.collapsed) .nav-item[data-tip]:hover::after { display: none; }
 .spinner { width: 54px; height: 54px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.1); border-top-color: var(--a1); border-right-color: var(--a2); animation: rot 0.8s linear infinite; }
 
 /* ---------- Proxy ---------- */
-.proxy-home { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px 0 40px; }
+.proxy-home { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: safe center; text-align: center; padding: 20px 0 40px; }
 .proxy-home h1 { font-size: clamp(34px, 5vw, 60px); letter-spacing: -0.04em; margin: 10px 0 6px; }
 .proxy-home > p { color: var(--muted); max-width: 560px; margin: 0 0 28px; }
 .omni { position: relative; width: 100%; max-width: 680px; }
@@ -345,8 +345,17 @@ body:not(.collapsed) .nav-item[data-tip]:hover::after { display: none; }
 .status-line i { width: 8px; height: 8px; border-radius: 50%; background: #64748b; }
 .status-line.on i { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
 .status-line.off i { background: #f43f5e; }
-.offline { max-width: 640px; margin-top: 22px; text-align: left; }
-.offline code { background: rgba(255, 255, 255, 0.08); padding: 2px 6px; border-radius: 6px; }
+.px-login { width: 100%; max-width: 440px; padding: 22px; text-align: left; display: flex; flex-direction: column; gap: 12px; }
+.px-login[hidden], .px-login [hidden] { display: none; }
+.px-login > b { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.px-login > b svg { width: 18px; height: 18px; }
+.px-login p { margin: 0; font-size: 13px; }
+.px-login label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+.px-error { color: #fb7185; min-height: 1em; }
+.px-error:empty { display: none; }
+.px-login-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.px-signout { margin-top: 18px; background: none; border: 0; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; }
+.px-signout:hover { color: var(--text); }
 
 .browser { flex: 1; display: none; flex-direction: column; min-height: 0; }
 .browser.open { display: flex; }
