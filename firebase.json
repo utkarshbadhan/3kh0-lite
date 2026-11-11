@@ -14,9 +14,7 @@
       "README.md",
       "**/.env*"
     ],
-    "predeploy": [
-      "npm run build"
-    ],
+    "predeploy": "npm install && npm run build",
     "headers": [
       {
         "source": "**",
