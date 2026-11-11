@@ -74,6 +74,11 @@ if [[ "$DOMAIN" == *.duckdns.org ]]; then ask DUCKDNS_TOKEN "DuckDNS token (from
 
 ask SITE_ORIGIN "Site(s) allowed to use the proxy, comma-separated" "${OLD_ORIGINS:-$DEFAULT_SITE}"
 SITE_ORIGIN=$(printf '%s' "$SITE_ORIGIN" | tr -d ' ' | sed -E 's#/+(,|$)#\1#g')
+IFS=',' read -r -a ORIGIN_LIST <<< "$SITE_ORIGIN"
+[ "${#ORIGIN_LIST[@]}" -gt 0 ] || die "Enter at least one allowed site origin."
+for origin in "${ORIGIN_LIST[@]}"; do
+  [[ "$origin" =~ ^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?$ ]] || die "Invalid site origin: $origin. Use an HTTPS origin only, without a path."
+done
 
 NEW_HASH=""
 if [ -z "${PROXY_PASSWORD:-}" ] && [ -r "$TTY" ]; then
@@ -121,6 +126,7 @@ if [ -z "$DOMAIN" ]; then
   DOMAIN="${PUBLIC_IP//./-}.sslip.io"
   echo "Using $DOMAIN"
 fi
+[[ "$DOMAIN" =~ ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$ ]] && [[ "$DOMAIN" != *..* ]] || die "Invalid web address: $DOMAIN"
 
 if [[ "$DOMAIN" == *.duckdns.org ]] && [ -n "${DUCKDNS_TOKEN:-}" ]; then
   say "Pointing $DOMAIN at this server"
@@ -130,7 +136,8 @@ if [[ "$DOMAIN" == *.duckdns.org ]] && [ -n "${DUCKDNS_TOKEN:-}" ]; then
   # Keep it updated every 5 minutes.
   install -m 700 /dev/null /usr/local/bin/duckdns-update
   printf '#!/bin/sh\ncurl -fsS "https://www.duckdns.org/update?domains=%s&token=%s&ip=" >/dev/null\n' "$SUB" "$DUCKDNS_TOKEN" > /usr/local/bin/duckdns-update
-  echo "*/5 * * * * root /usr/local/bin/duckdns-update" > /etc/cron.d/duckdns
+  echo "*/5 * * * * root /usr/local/bin/duckdns-update >/dev/null 2>&1" > /etc/cron.d/duckdns
+chmod 644 /etc/cron.d/duckdns
   chmod 644 /etc/cron.d/duckdns
 fi
 
