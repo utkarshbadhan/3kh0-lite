@@ -1,0 +1,110 @@
+/* ==========================================================================
+   ScienceTube — arrival intro (js/intro.js)
+   ========================================================================== */
+
+.intro {
+  position: fixed; inset: 0; z-index: 200; overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 45%, #0d0a22 0%, #05040c 70%);
+  display: grid; place-items: center; cursor: default;
+  transition: opacity 0.8s var(--ease), transform 0.9s var(--ease), filter 0.8s;
+}
+.intro-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.intro-vignette {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.65) 100%);
+}
+
+.intro-skip {
+  position: absolute; top: 18px; right: 18px; z-index: 3; display: inline-flex; align-items: center; gap: 10px;
+  padding: 9px 14px; border-radius: 99px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); backdrop-filter: blur(10px);
+  transition: 0.25s var(--ease); animation: introFade 0.6s 0.4s var(--ease) both;
+}
+.intro-skip:hover { color: var(--text); border-color: var(--line-strong); background: rgba(255, 255, 255, 0.1); }
+.intro.ready .intro-skip { opacity: 0; pointer-events: none; }
+
+.intro-stage {
+  position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 24px; pointer-events: none;
+}
+.intro.ready .intro-stage { pointer-events: auto; }
+
+/* Atom mark above the wordmark */
+.intro-atom { width: clamp(70px, 9vw, 104px); height: auto; overflow: visible; margin-bottom: 6px; opacity: 0; transform: scale(0.4) rotate(-90deg); transition: 0.9s var(--ease); }
+.intro-atom ellipse { fill: none; stroke: url(#ia-g); stroke-width: 2.2; opacity: 0.75; }
+.intro-atom .ia-orbit { transform: rotate(var(--r, 0deg)); }
+.intro-atom .ia-e { fill: #fff; filter: drop-shadow(0 0 4px #fff); }
+.intro-atom .ia-core { filter: drop-shadow(0 0 10px var(--a2)); animation: corePulse 2.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes corePulse { 50% { transform: scale(1.18); } }
+.intro.formed .intro-atom { opacity: 1; transform: none; }
+
+/* Wordmark: the particles draw it; this text is for layout, screen readers and the glow. */
+.intro-word {
+  position: relative; margin: 0; font-size: clamp(46px, 12.5vw, 156px); line-height: 1.05; font-weight: 900; letter-spacing: -0.045em; white-space: nowrap;
+}
+.intro-word span { color: transparent; }
+.intro-word::before {
+  content: "ScienceTube"; position: absolute; inset: 0; z-index: -1;
+  background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: blur(22px); opacity: 0; transition: opacity 1.2s;
+}
+.intro.formed .intro-word::before { opacity: 0.6; }
+
+.intro-tag {
+  margin: 10px 0 0; font-size: clamp(14px, 1.6vw, 19px); color: var(--muted); letter-spacing: 0.02em;
+  opacity: 0; transform: translateY(12px); transition: 0.7s 0.15s var(--ease);
+}
+.intro.formed .intro-tag { opacity: 1; transform: none; }
+
+.intro-cta { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: clamp(26px, 5vh, 46px); }
+.intro-play {
+  --tx: 0px; --ty: 0px;
+  position: relative; display: inline-flex; align-items: center; gap: 14px; cursor: pointer; border: 0;
+  padding: 20px 38px 20px 32px; border-radius: 99px; font-size: clamp(17px, 2vw, 21px); font-weight: 800; color: #fff; letter-spacing: 0.01em;
+  background: var(--grad); background-size: 200% 200%;
+  box-shadow: 0 18px 60px -12px var(--a1), 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
+  opacity: 0; transform: translate(var(--tx), calc(var(--ty) + 22px)) scale(0.85);
+  transition: opacity 0.6s var(--ease), transform 0.35s var(--ease), box-shadow 0.3s;
+  animation: gradShift 4s ease-in-out infinite;
+}
+.intro-play svg { width: 22px; height: 22px; fill: currentColor; stroke: none; }
+.intro-play:hover { box-shadow: 0 24px 80px -10px var(--a2), 0 0 0 1px rgba(255, 255, 255, 0.3) inset; }
+.intro-play:active { transform: translate(var(--tx), var(--ty)) scale(0.97); }
+.intro-play:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
+.intro-play-ring { position: absolute; inset: -2px; border-radius: inherit; pointer-events: none; }
+.intro-play-ring::before, .intro-play-ring::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; border: 2px solid var(--a3);
+  animation: ringOut 2.2s var(--ease) infinite; opacity: 0;
+}
+.intro-play-ring::after { animation-delay: 1.1s; }
+@keyframes ringOut { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(1.35, 1.7); opacity: 0; } }
+@keyframes gradShift { 50% { background-position: 100% 50%; } }
+.intro.ready .intro-play { opacity: 1; transform: translate(var(--tx), var(--ty)); }
+
+.intro-enter {
+  background: none; border: 0; cursor: pointer; color: var(--muted); font-size: 14px; padding: 6px 10px; border-radius: 10px;
+  opacity: 0; transition: opacity 0.6s 0.25s, color 0.2s;
+}
+.intro-enter:hover { color: var(--text); text-decoration: underline; text-underline-offset: 4px; }
+.intro.ready .intro-enter { opacity: 1; }
+
+.intro.instant .intro-atom, .intro.instant .intro-tag, .intro.instant .intro-play, .intro.instant .intro-enter { transition-delay: 0s; }
+
+/* Leaving: the overlay zooms past the viewer while the site settles in behind it. */
+.intro.leaving { opacity: 0; transform: scale(1.12); filter: blur(6px); pointer-events: none; }
+body.intro-on .shell { opacity: 0; }
+body.intro-reveal .shell { animation: siteIn 0.9s var(--ease) both; }
+@keyframes siteIn { from { opacity: 0; transform: scale(0.965); filter: blur(8px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes introFade { from { opacity: 0; } }
+
+/* Reduced motion: a calm, static welcome card. */
+.intro-static .intro-word span { background: var(--grad); -webkit-background-clip: text; background-clip: text; }
+.intro-static .intro-play-ring { display: none; }
+.intro-static, .intro-static * { transition-duration: 0.3s !important; animation: none !important; }
+.intro-static.leaving { transform: none; filter: none; }
+body.intro-reveal.calm .shell { animation: none; }
+
+@media (max-width: 560px) {
+  .intro-word { font-size: 12.6vw; }
+  .intro-play { padding: 17px 30px 17px 26px; }
+}

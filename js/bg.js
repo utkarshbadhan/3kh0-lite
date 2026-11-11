@@ -7,7 +7,7 @@
   const ctx = canvas.getContext("2d");
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  let w = 0, h = 0, dpr = 1, raf = 0, running = false, enabled = true, paused = false;
+  let w = 0, h = 0, dpr = 1, raf = 0, running = false, enabled = true, paused = false, hold = false;
   let colors = [];
   const mouse = { x: -9999, y: -9999, tx: -9999, ty: -9999 };
   let stars = [], blobs = [];
@@ -81,7 +81,7 @@
   }
 
   function sync() {
-    const should = enabled && !paused && !document.hidden && !reduced;
+    const should = enabled && !paused && !hold && !document.hidden && !reduced;
     if (should && !running) { running = true; raf = requestAnimationFrame(frame); }
     else if (!should && running) { running = false; cancelAnimationFrame(raf); }
     canvas.style.opacity = !enabled ? "0" : paused ? "0.55" : "1";
@@ -101,5 +101,7 @@
     refresh() { readColors(); if (!running) { frame(performance.now()); cancelAnimationFrame(raf); } },
     setEnabled(v) { enabled = v; sync(); },
     setPaused(v) { paused = v; sync(); },
+    // The arrival intro covers the screen, so stop drawing underneath it.
+    setHold(v) { hold = v; sync(); },
   };
 })();
