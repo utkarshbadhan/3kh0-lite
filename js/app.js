@@ -42,7 +42,11 @@
   // to show the Proxy tab as "Coming soon" instead.
   const PROXY_ENABLED = true;
 
-  const SECTIONS = [
+  // School mode: the same app, opened as a study dashboard (see school.html
+  // and js/school.js). Games and the proxy stay one click away in the sidebar.
+  const SCHOOL = window.SCIENCETUBE_MODE === "school" && !!window.STSchool;
+
+  const SECTIONS = SCHOOL ? window.STSchool.sections(PROXY_ENABLED) : [
     { group: "Play" },
     { id: "home", label: "Home", icon: "home", blurb: "Your dashboard" },
     { id: "games", label: "All games", icon: "games", blurb: "Browse the full library", glow: "var(--a1)" },
@@ -1107,7 +1111,7 @@
     const navId = meta.nav || name;
     setActiveNav(navId);
     const sec = NAV.find((s) => s.id === navId);
-    $("#crumbs").innerHTML = meta.crumb ? `${esc(sec.label)} / <b>${esc(meta.crumb)}</b>` : `<b>${esc(sec ? sec.label : "Home")}</b>`;
+    $("#crumbs").innerHTML = meta.crumb ? `${sec ? esc(sec.label) + " / " : ""}<b>${esc(meta.crumb)}</b>` : `<b>${esc(sec ? sec.label : "Home")}</b>`;
     NebulaBG.setPaused(!!meta.immersive || (PROXY_ENABLED && name === "proxy"));
     if (name !== "proxy") view.scrollTop = 0;
   }
@@ -1176,7 +1180,7 @@
     if (!panic.off && e.key === panic.key) { e.preventDefault(); location.replace(panic.url); return; }
     if (e.key === "/") { e.preventDefault(); openPalette(); }
     else if (e.key === "[") setCollapsed(!document.body.classList.contains("collapsed"));
-    else if (e.key.toLowerCase() === "r") randomGame();
+    else if (e.key.toLowerCase() === "r" && !SCHOOL) randomGame();
     else if (/^[1-9]$/.test(e.key) && JUMP[+e.key - 1]) location.hash = "#/" + JUMP[+e.key - 1].id;
   });
 
@@ -1198,6 +1202,7 @@
   if (store.get("collapsed", false)) document.body.classList.add("collapsed");
   if (store.get("calm", false)) document.body.classList.add("calm");
   NebulaBG.setEnabled(store.get("bg", true));
+  if (SCHOOL) window.STSchool.install({ VIEWS, I, svg, $, $$, esc, toast, view, store, setCollapsed, onLeave: (fn) => cleanup.push(fn), route: () => route(), games: () => games, proxyEnabled: PROXY_ENABLED });
   buildNav();
   updateStats();
   if (PROXY_ENABLED) NebulaProxy.check().then(setProxyDot);

@@ -82,3 +82,21 @@ projects/<slug>/  the games
 ## Credits
 
 Based on [3kh0-lite](https://github.com/3kh0/3kh0-lite) by 3kh0. Games belong to their respective creators.
+
+## Study desk (second site from the same repo)
+
+`school.html` is a second front door to the same app: a study dashboard with a
+calendar, assignments, notes, a focus timer, a calculator, a unit converter and
+a periodic table, with Games and Proxy in its sidebar. Everything a person adds
+is saved in their own browser (`localStorage`, keys starting with `school.`).
+
+To publish it at its own address, create a second Netlify project from this
+repository and add one environment variable before the first deploy:
+
+```
+SITE_MODE=school
+```
+
+The build then makes `school.html` the home page (the games home page stays at
+`/arcade.html`). Without the variable the build produces the games site exactly
+as before. The code lives in `js/school.js` and `css/school.css`.
