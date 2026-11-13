@@ -5,3 +5,5 @@ node_modules/
 /epoxy/
 /uv/*
 !/uv/uv.config.js
+# Built by scripts/site-mode.js when SITE_MODE=school
+/arcade.html
